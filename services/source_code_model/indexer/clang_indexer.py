@@ -177,7 +177,7 @@ class ClangIndexer(object):
 
     def __find_all_references(self, id, args):
         start = time.clock()
-        references = ()
+        references = []
         tunit = self.parser.parse(str(args[0]), str(args[0]))
         if tunit:
             cursor = self.parser.get_cursor(tunit, int(args[1]), int(args[2]))
@@ -189,14 +189,15 @@ class ClangIndexer(object):
                 #      contrast contains an original filename).
                 usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
                 ast_node_id = self.parser.get_ast_node_id(cursor)
-                if ast_node_id in [ASTNodeId.getFunctionId(), ASTNodeId.getMethodId()]:
-                    references = self.symbol_db.get_by_id(usr).fetchall()
-                elif ast_node_id in [ASTNodeId.getClassId(), ASTNodeId.getStructId(), ASTNodeId.getEnumId(), ASTNodeId.getEnumValueId(), ASTNodeId.getUnionId(), ASTNodeId.getTypedefId()]:
-                    references = self.symbol_db.get_by_id(usr).fetchall()
-                elif ast_node_id in [ASTNodeId.getLocalVariableId(), ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId()]:
-                    references = self.symbol_db.get_by_id(usr).fetchall()
-                elif ast_node_id in [ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()]:
-                    references = self.symbol_db.get_by_id(usr).fetchall()
+                if ast_node_id in [
+                    ASTNodeId.getFunctionId(), ASTNodeId.getMethodId(),
+                    ASTNodeId.getClassId(), ASTNodeId.getStructId(), ASTNodeId.getEnumId(), ASTNodeId.getEnumValueId(),
+                    ASTNodeId.getUnionId(), ASTNodeId.getTypedefId(),
+                    ASTNodeId.getLocalVariableId(), ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),
+                    ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()
+                ]:
+                    for ref in self.symbol_db.get_by_id(usr).fetchall():
+                        references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
                 else:
                     pass
             logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
