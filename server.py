@@ -6,8 +6,8 @@ from services.project_builder_service import ProjectBuilder
 from services.source_code_model_service import SourceCodeModel
 
 class Server():
-    def __init__(self, msg_queue, source_code_model_plugin, builder_plugin, clang_format_plugin, clang_tidy_plugin):
-        self.msg_queue = msg_queue
+    def __init__(self, handle, source_code_model_plugin, builder_plugin, clang_format_plugin, clang_tidy_plugin):
+        self.handle = handle
         self.service = {
             0x0 : SourceCodeModel(source_code_model_plugin),
             0x1 : ProjectBuilder(builder_plugin),
@@ -84,7 +84,7 @@ class Server():
     def listen(self):
         while self.keep_listening is True:
             logging.info("Listening on a request ...")
-            payload = self.msg_queue.get()
+            payload = self.handle.get()
             logging.info("Request received. Payload = {0}".format(payload))
             self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
         logging.info("Server shut down.")
