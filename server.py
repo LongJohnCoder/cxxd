@@ -6,13 +6,54 @@ from services.project_builder_service import ProjectBuilder
 from services.source_code_model_service import SourceCodeModel
 
 class Server():
+    class ServiceHandler():
+        def __init__(self, service):
+            self.service = service
+            self.process = None
+
+        def start_listening(self):
+            if self.is_started():
+                logging.warning("Service process already started!")
+            else:
+                self.process = Process(target=self.service.listen, name=self.service.__class__.__name__)
+                self.process.daemon = False
+                self.process.start()
+
+        def stop_listening(self):
+            if self.is_started():
+                self.process.join()
+                self.process = None
+            else:
+                logging.warning("Service process already stopped!")
+
+        def is_started(self):
+            return self.process != None
+
+        def startup_request(self, payload):
+            if self.is_started():
+                self.service.send_startup_request(payload)
+            else:
+                logging.warning("Service process must be started before issuing any kind of requests!")
+
+        def shutdown_request(self, payload):
+            if self.is_started():
+                self.service.send_shutdown_request(payload)
+            else:
+                logging.warning("Service process must be started before issuing any kind of requests!")
+
+        def request(self, payload):
+            if self.is_started():
+                self.service.send_request(payload)
+            else:
+                logging.warning("Service process must be started before issuing any kind of requests!")
+
     def __init__(self, handle, source_code_model_plugin, builder_plugin, clang_format_plugin, clang_tidy_plugin):
         self.handle = handle
         self.service = {
-            0x0 : SourceCodeModel(source_code_model_plugin),
-            0x1 : ProjectBuilder(builder_plugin),
-            0x2 : ClangSourceCodeFormatter(clang_format_plugin),
-            0x3 : ClangTidy(clang_tidy_plugin)
+            0x0 : self.ServiceHandler(SourceCodeModel(source_code_model_plugin)),
+            0x1 : self.ServiceHandler(ProjectBuilder(builder_plugin)),
+            0x2 : self.ServiceHandler(ClangSourceCodeFormatter(clang_format_plugin)),
+            0x3 : self.ServiceHandler(ClangTidy(clang_tidy_plugin)),
         }
         self.service_processes = {}
         self.action = {
@@ -30,41 +71,44 @@ class Server():
 
     def __start_all_services(self, dummyServiceId, dummyPayload):
         logging.info("Starting all registered services ... {0}".format(self.service))
-        for id, svc in self.service.iteritems():
-            p = Process(target=svc.listen, name=svc.__class__.__name__)
-            p.daemon = False
-            p.start()
-            self.service_processes[id] = p
-            self.service[id].send_startup_request(dummyPayload)
+        for serviceId, svc_handler in self.service.iteritems():
+            svc_handler.start_listening()
+            svc_handler.startup_request(dummyPayload)
+            logging.info(
+                "id={0}, service='{1}', payload={2}".format(serviceId, svc_handler.service.__class__.__name__, dummyPayload)
+            )
 
     def __start_service(self, serviceId, payload):
-        logging.info("Starting the service with serviceId = {0}. Payload = {1}".format(serviceId, payload))
-        if serviceId in self.service:
-            p = Process(target=self.service[serviceId].listen)
-            p.daemon = False
-            p.start()
-            self.service_processes[serviceId] = p
-            self.service[serviceId].send_startup_request(payload)
+        svc_handler = self.service.get(serviceId, None)
+        if svc_handler is not None:
+            logging.info(
+                "id={0}, service='{1}', payload={2}".format(serviceId, svc_handler.service.__class__.__name__, payload)
+            )
+            svc_handler.start_listening()
+            svc_handler.startup_request(payload)
         else:
-            logging.error("No service found with serviceId = {0}.".format(serviceId))
+            logging.error("Starting the service not possible. No service found under id={0}.".format(serviceId))
 
     def __shutdown_all_services(self, dummyServiceId, payload):
         logging.info("Shutting down all registered services ... {0}".format(self.service))
-        if self.service_processes:
-            for id, svc in self.service.iteritems():
-                svc.send_shutdown_request(payload)
-            for svc_id, svc_process in self.service_processes.iteritems():
-                svc_process.join()
-            del self.service_processes
+        for serviceId, svc_handler in self.service.iteritems():
+            svc_handler.shutdown_request(payload)
+            logging.info(
+                "id={0}, service='{1}', payload={2}".format(serviceId, svc_handler.service.__class__.__name__, payload)
+            )
+        for svc_handler in self.service.itervalues():
+            svc_handler.stop_listening()
 
     def __shutdown_service(self, serviceId, payload):
-        logging.info("Shutting down the service with serviceId = {0}. Payload = {1}".format(serviceId, payload))
-        if serviceId in self.service:
-            self.service[serviceId].send_shutdown_request(payload)
-            self.service_processes[serviceId].join()
-            del self.service_processes[serviceId]
+        svc_handler = self.service.get(serviceId, None)
+        if svc_handler is not None:
+            logging.info(
+                "id={0}, service='{1}', payload={2}".format(serviceId, svc_handler.service.__class__.__name__, payload)
+            )
+            svc_handler.shutdown_request(payload)
+            svc_handler.stop_listening()
         else:
-            logging.error("No service found with serviceId = {0}.".format(serviceId))
+            logging.error("Shutting down the service not possible. No service found under id={0}.".format(serviceId))
 
     def __shutdown_and_exit(self, dummyServiceId, payload):
         logging.info("Shutting down the server ...")
@@ -72,20 +116,21 @@ class Server():
         self.keep_listening = False
 
     def __send_service_request(self, serviceId, payload):
-        logging.info("Triggering service with serviceId = {0}. Payload = {1}".format(serviceId, payload))
-        if serviceId in self.service:
-            self.service[serviceId].send_request(payload)
+        svc_handler = self.service.get(serviceId, None)
+        if svc_handler is not None:
+            logging.info(
+                "id={0}, service='{1}', Payload={2}".format(serviceId, svc_handler.service.__class__.__name__, payload)
+            )
+            svc_handler.request(payload)
         else:
-            logging.error("No service found with serviceId = {0}.".format(serviceId))
+            logging.error("Sending a request to the service not possible. No service found under id={0}.".format(serviceId))
 
     def __unknown_action(self, serviceId, payload):
         logging.error("Unknown action triggered! Valid actions are: {0}".format(self.action))
 
     def listen(self):
         while self.keep_listening is True:
-            logging.info("Listening on a request ...")
             payload = self.handle.get()
-            logging.info("Request received. Payload = {0}".format(payload))
             self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
         logging.info("Server shut down.")
 

@@ -25,6 +25,7 @@ class Service():
         self.keep_listening = False
 
     def __request(self, payload):
+        logging.info("Service request ... Payload = {0}".format(payload))
         success, args = self.__call__(payload)
         self.service_plugin.__call__(success, args, payload)
 
@@ -33,9 +34,7 @@ class Service():
 
     def listen(self):
         while self.keep_listening is True:
-            logging.info("Listening on a request ...")
             payload = self.queue.get()
-            logging.info("Request received. Payload = {0}".format(payload))
             self.action.get(payload[0], self.__unknown_action)(payload[1])
         logging.info("Service shut down.")
 
