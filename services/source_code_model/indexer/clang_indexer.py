@@ -18,7 +18,7 @@ def slice_it(iterable, n, padvalue=None):
 
 class ClangIndexer(object):
     def __init__(self, parser, root_directory):
-        self.symbol_db_name = '.yavide_index.db'
+        self.symbol_db_name = '.cxxd_index.db'
         self.symbol_db = SymbolDatabase()
         self.parser = parser
         self.root_directory = root_directory
@@ -99,7 +99,7 @@ class ClangIndexer(object):
                 chunk_with_no_none_items = '\n'.join(item for item in cpp_file_list_chunk if item)
 
                 # Each subprocess will get a file containing source files to be indexed
-                cpp_file_list_handle, cpp_file_list = tempfile.mkstemp(prefix='.yavide_idx_input', dir=self.root_directory)
+                cpp_file_list_handle, cpp_file_list = tempfile.mkstemp(prefix='.cxxd_idx_input', dir=self.root_directory)
                 os.write(cpp_file_list_handle, chunk_with_no_none_items)
                 os.close(cpp_file_list_handle)
 
