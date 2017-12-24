@@ -1,6 +1,6 @@
 import logging
 from multiprocessing import Process, Queue
-from services.clang_formatter_service import ClangSourceCodeFormatter
+from services.clang_format_service import ClangFormat
 from services.clang_tidy_service import ClangTidy
 from services.project_builder_service import ProjectBuilder
 from services.source_code_model_service import SourceCodeModel
@@ -52,7 +52,7 @@ class Server():
         self.service = {
             0x0 : self.ServiceHandler(SourceCodeModel(source_code_model_plugin)),
             0x1 : self.ServiceHandler(ProjectBuilder(builder_plugin)),
-            0x2 : self.ServiceHandler(ClangSourceCodeFormatter(clang_format_plugin)),
+            0x2 : self.ServiceHandler(ClangFormat(clang_format_plugin)),
             0x3 : self.ServiceHandler(ClangTidy(clang_tidy_plugin)),
         }
         self.service_processes = {}

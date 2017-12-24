@@ -2,7 +2,7 @@ import logging
 import subprocess
 import cxxd.service
 
-class ClangSourceCodeFormatter(cxxd.service.Service):
+class ClangFormat(cxxd.service.Service):
     def __init__(self, service_plugin):
         cxxd.service.Service.__init__(self, service_plugin)
         self.config_file = ""
