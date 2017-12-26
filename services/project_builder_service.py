@@ -12,7 +12,7 @@ class ProjectBuilder(cxxd.service.Service):
 
     def startup_callback(self, args):
         self.build_cmd_dir = args[0]
-        self.build_cmd_output_file = tempfile.NamedTemporaryFile(prefix=args[1] + '_', delete=True)
+        self.build_cmd_output_file = tempfile.NamedTemporaryFile(suffix='_project_build_output', delete=True)
         logging.info("Args = {0}, build_cmd_output_file = {1}.".format(args, self.build_cmd_output_file.name))
 
     def shutdown_callback(self, args):

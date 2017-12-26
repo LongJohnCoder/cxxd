@@ -131,7 +131,7 @@ def indexer_find_all_references_request(handle, filename, line, col):
 # Project builder service API
 #
 def project_builder_start(handle, project_root_directory):
-    start_service(handle, 0x1, project_root_directory, '/tmp/cxxd_build_output')
+    start_service(handle, 0x1, project_root_directory)
 
 def project_builder_stop(handle, subscribe_for_callback):
     stop_service(handle, 0x1, subscribe_for_callback)
