@@ -16,9 +16,10 @@ class ClangFormat(cxxd.service.Service):
     def shutdown_callback(self, args):
         pass
 
-    def __call__(self, filename):
+    def __call__(self, args):
+        filename = args[0]
         cmd = self.format_cmd + " " + filename
         ret = subprocess.call(cmd, shell=True)
         logging.info("Filename = {0}. Cmd = {1}".format(filename, cmd))
-        return ret, filename
+        return ret, None
 
