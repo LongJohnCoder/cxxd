@@ -27,7 +27,7 @@ class Service():
     def __request(self, payload):
         logging.info("Service request ... Payload = {0}".format(payload))
         success, args = self.__call__(payload)
-        self.service_plugin.__call__(success, args, payload)
+        self.service_plugin.__call__(success, payload, args)
 
     def __unknown_action(self, payload):
         logging.error("Unknown action triggered! Valid actions are: {0}".format(self.action))
