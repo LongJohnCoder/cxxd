@@ -18,12 +18,12 @@ class ProjectBuilder(cxxd.service.Service):
     def shutdown_callback(self, args):
         pass
 
-    def __call__(self, arg):
+    def __call__(self, args):
         start = time.clock()
-        build_cmd = arg[0]
+        build_cmd = args[0]
         self.build_cmd_output_file.truncate()
         cmd = "cd " + self.build_cmd_dir + " && " + build_cmd
         ret = subprocess.call(cmd, shell=True, stdout=self.build_cmd_output_file, stderr=self.build_cmd_output_file)
         end = time.clock()
         logging.info("Cmd '{0}' took {1}".format(cmd, end-start))
-        return ret, self.build_cmd_output_file.name
+        return self.build_cmd_output_file.name, end-start
