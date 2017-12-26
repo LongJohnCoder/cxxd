@@ -9,7 +9,7 @@ class ClangFormat(cxxd.service.Service):
         self.format_cmd = "clang-format -i -style=file -assume-filename="
 
     def startup_callback(self, args):
-        self.config_file = args
+        self.config_file = args[0]
         self.format_cmd += self.config_file
         logging.info("Config_file = {0}. Format_cmd = {1}".format(self.config_file, self.format_cmd))
 
