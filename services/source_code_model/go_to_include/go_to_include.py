@@ -3,8 +3,8 @@ class GoToInclude():
         self.parser = parser
 
     def __call__(self, args):
-        contents_filename = str(args[0])
-        original_filename = str(args[1])
+        original_filename = str(args[0])
+        contents_filename = str(args[1])
         line              = int(args[2])
 
         include_filename = ''

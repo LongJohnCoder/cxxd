@@ -40,8 +40,8 @@ class ClangIndexer(object):
         logging.error("Unknown operation with ID={0} triggered! Valid operations are: {1}".format(id, self.op))
 
     def __run_on_single_file(self, id, args):
-        contents_filename = str(args[0])
-        original_filename = str(args[1])
+        original_filename = str(args[0])
+        contents_filename = str(args[1])
 
         # We don't run indexer on files modified but not saved
         if contents_filename == original_filename:
