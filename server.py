@@ -5,6 +5,20 @@ from services.clang_tidy_service import ClangTidy
 from services.project_builder_service import ProjectBuilder
 from services.source_code_model_service import SourceCodeModel
 
+class ServiceId():
+    SOURCE_CODE_MODEL     = 0x0
+    PROJECT_BUILDER       = 0x1
+    CLANG_FORMAT          = 0x2
+    CLANG_TIDY            = 0x3
+
+class ServerRequestId():
+    START_ALL_SERVICES    = 0xF0
+    START_SERVICE         = 0xF1
+    SEND_SERVICE          = 0xF2
+    SHUTDOWN_ALL_SERVICES = 0xFD
+    SHUTDOWN_SERVICE      = 0xFE
+    SHUTDOWN_AND_EXIT     = 0xFF
+
 class Server():
     class ServiceHandler():
         def __init__(self, service):
@@ -47,22 +61,21 @@ class Server():
             else:
                 logging.warning("Service process must be started before issuing any kind of requests!")
 
-    def __init__(self, handle, source_code_model_plugin, builder_plugin, clang_format_plugin, clang_tidy_plugin):
+    def __init__(self, handle, source_code_model_plugin, project_builder_plugin, clang_format_plugin, clang_tidy_plugin):
         self.handle = handle
         self.service = {
-            0x0 : self.ServiceHandler(SourceCodeModel(source_code_model_plugin)),
-            0x1 : self.ServiceHandler(ProjectBuilder(builder_plugin)),
-            0x2 : self.ServiceHandler(ClangFormat(clang_format_plugin)),
-            0x3 : self.ServiceHandler(ClangTidy(clang_tidy_plugin)),
+            ServiceId.SOURCE_CODE_MODEL : self.ServiceHandler(SourceCodeModel(source_code_model_plugin)),
+            ServiceId.PROJECT_BUILDER   : self.ServiceHandler(ProjectBuilder(project_builder_plugin)),
+            ServiceId.CLANG_FORMAT      : self.ServiceHandler(ClangFormat(clang_format_plugin)),
+            ServiceId.CLANG_TIDY        : self.ServiceHandler(ClangTidy(clang_tidy_plugin)),
         }
-        self.service_processes = {}
         self.action = {
-            0xF0 : self.__start_all_services,
-            0xF1 : self.__start_service,
-            0xF2 : self.__send_service_request,
-            0xFD : self.__shutdown_all_services,
-            0xFE : self.__shutdown_service,
-            0xFF : self.__shutdown_and_exit
+            ServerRequestId.START_ALL_SERVICES    : self.__start_all_services,
+            ServerRequestId.START_SERVICE         : self.__start_service,
+            ServerRequestId.SEND_SERVICE          : self.__send_service_request,
+            ServerRequestId.SHUTDOWN_ALL_SERVICES : self.__shutdown_all_services,
+            ServerRequestId.SHUTDOWN_SERVICE      : self.__shutdown_service,
+            ServerRequestId.SHUTDOWN_AND_EXIT     : self.__shutdown_and_exit
             # TODO add runtime debugging switch action
         }
         self.keep_listening = True

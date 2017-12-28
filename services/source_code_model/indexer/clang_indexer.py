@@ -16,6 +16,13 @@ import itertools
 def slice_it(iterable, n, padvalue=None):
     return itertools.izip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
 
+class SourceCodeModelIndexerRequestId():
+    RUN_ON_SINGLE_FILE        = 0x0
+    RUN_ON_DIRECTORY          = 0x1
+    DROP_SINGLE_FILE          = 0x2
+    DROP_ALL                  = 0x3
+    FIND_ALL_REFERENCES       = 0x10
+
 class ClangIndexer(object):
     def __init__(self, parser, root_directory):
         self.symbol_db_name = '.cxxd_index.db'
@@ -23,11 +30,11 @@ class ClangIndexer(object):
         self.parser = parser
         self.root_directory = root_directory
         self.op = {
-            0x0 : self.__run_on_single_file,
-            0x1 : self.__run_on_directory,
-            0x2 : self.__drop_single_file,
-            0x3 : self.__drop_all,
-            0x10 : self.__find_all_references
+            SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE  : self.__run_on_single_file,
+            SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY    : self.__run_on_directory,
+            SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE    : self.__drop_single_file,
+            SourceCodeModelIndexerRequestId.DROP_ALL            : self.__drop_all,
+            SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES : self.__find_all_references
         }
 
     def get_symbol_db(self):

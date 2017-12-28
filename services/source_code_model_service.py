@@ -9,6 +9,14 @@ from source_code_model.type_deduction.type_deduction import TypeDeduction
 from source_code_model.go_to_definition.go_to_definition import GoToDefinition
 from source_code_model.go_to_include.go_to_include import GoToInclude
 
+class SourceCodeModelSubServiceId():
+    INDEXER                   = 0x0
+    SEMANTIC_SYNTAX_HIGHLIGHT = 0x1
+    DIAGNOSTICS               = 0x2
+    TYPE_DEDUCTION            = 0x3
+    GO_TO_DEFINITION          = 0x4
+    GO_TO_INCLUDE             = 0x5
+
 class SourceCodeModel(cxxd.service.Service):
     def __init__(self, service_plugin):
         cxxd.service.Service.__init__(self, service_plugin)
@@ -23,16 +31,18 @@ class SourceCodeModel(cxxd.service.Service):
         compiler_args_filename = args[1]
 
         # Instantiate source-code-model services with Clang parser configured
-        self.parser        = cxxd.parser.clang_parser.ClangParser(compiler_args_filename,
-                cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20)))
+        self.parser        = cxxd.parser.clang_parser.ClangParser(
+                                compiler_args_filename,
+                                cxxd.parser.tunit_cache.TranslationUnitCache(cxxd.parser.tunit_cache.FifoCache(20))
+                             )
         self.clang_indexer = ClangIndexer(self.parser, project_root_directory)
         self.service = {
-            0x0 : self.clang_indexer,
-            0x1 : SyntaxHighlighter(self.parser),
-            0x2 : Diagnostics(self.parser),
-            0x3 : TypeDeduction(self.parser),
-            0x4 : GoToDefinition(self.parser, self.clang_indexer.get_symbol_db(), project_root_directory),
-            0x5 : GoToInclude(self.parser)
+            SourceCodeModelSubServiceId.INDEXER                   : self.clang_indexer,
+            SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT : SyntaxHighlighter(self.parser),
+            SourceCodeModelSubServiceId.DIAGNOSTICS               : Diagnostics(self.parser),
+            SourceCodeModelSubServiceId.TYPE_DEDUCTION            : TypeDeduction(self.parser),
+            SourceCodeModelSubServiceId.GO_TO_DEFINITION          : GoToDefinition(self.parser, self.clang_indexer.get_symbol_db(), project_root_directory),
+            SourceCodeModelSubServiceId.GO_TO_INCLUDE             : GoToInclude(self.parser)
         }
 
     def shutdown_callback(self, args):
