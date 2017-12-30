@@ -207,7 +207,7 @@ class ClangIndexer(object):
                         references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
                 else:
                     pass
-            logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
+                logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
             logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
 
         return tunit != None, references
