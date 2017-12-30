@@ -11,6 +11,7 @@ class ClangTidy(cxxd.service.Service):
         self.config_file = ''
         self.compiler_options = ''
         self.cmd = 'clang-tidy'
+        self.clang_tidy_success_code = 0
 
     def startup_callback(self, args):
         self.config_file = args[0]
@@ -37,4 +38,4 @@ class ClangTidy(cxxd.service.Service):
             ret = subprocess.call(cmd, shell=True, stdout=f)
             end = time.clock()
         logging.info("Clang-Tidy over '{0}' completed in {1}s.".format(filename, end-start))
-        return ret, self.output_file.name
+        return ret == self.clang_tidy_success_code, self.output_file.name
