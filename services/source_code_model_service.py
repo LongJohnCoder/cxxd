@@ -2,7 +2,7 @@ import logging
 import cxxd.parser.clang_parser
 import cxxd.parser.tunit_cache
 import cxxd.service
-from source_code_model.syntax_highlighter.syntax_highlighter import SyntaxHighlighter
+from source_code_model.semantic_syntax_highlight.semantic_syntax_highlight import SemanticSyntaxHighlight
 from source_code_model.diagnostics.diagnostics import Diagnostics
 from source_code_model.indexer.clang_indexer import ClangIndexer
 from source_code_model.type_deduction.type_deduction import TypeDeduction
@@ -38,7 +38,7 @@ class SourceCodeModel(cxxd.service.Service):
         self.clang_indexer = ClangIndexer(self.parser, project_root_directory)
         self.service = {
             SourceCodeModelSubServiceId.INDEXER                   : self.clang_indexer,
-            SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT : SyntaxHighlighter(self.parser),
+            SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT : SemanticSyntaxHighlight(self.parser),
             SourceCodeModelSubServiceId.DIAGNOSTICS               : Diagnostics(self.parser),
             SourceCodeModelSubServiceId.TYPE_DEDUCTION            : TypeDeduction(self.parser),
             SourceCodeModelSubServiceId.GO_TO_DEFINITION          : GoToDefinition(self.parser, self.clang_indexer.get_symbol_db(), project_root_directory),

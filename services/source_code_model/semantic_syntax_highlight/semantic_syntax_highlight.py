@@ -2,7 +2,7 @@ import logging
 from cxxd.parser.ast_node_identifier import ASTNodeId
 from cxxd.parser.clang_parser import ChildVisitResult
 
-class SyntaxHighlighter():
+class SemanticSyntaxHighlight():
     def __init__(self, parser):
         self.parser = parser
 
