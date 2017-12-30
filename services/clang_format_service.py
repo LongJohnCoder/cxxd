@@ -7,6 +7,7 @@ class ClangFormat(cxxd.service.Service):
         cxxd.service.Service.__init__(self, service_plugin)
         self.config_file = ""
         self.format_cmd = "clang-format -i -style=file -assume-filename="
+        self.clang_format_success_code = 0
 
     def startup_callback(self, args):
         self.config_file = args[0]
@@ -21,5 +22,4 @@ class ClangFormat(cxxd.service.Service):
         cmd = self.format_cmd + " " + filename
         ret = subprocess.call(cmd, shell=True)
         logging.info("Filename = {0}. Cmd = {1}".format(filename, cmd))
-        return ret, None
-
+        return ret == self.clang_format_success_code, None
