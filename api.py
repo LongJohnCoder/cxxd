@@ -22,14 +22,14 @@ def start_server(get_server_instance, get_server_instance_args, log_file):
             # But sys.excepthook does not work anymore within multi-threaded/multi-process environment (see https://bugs.python.org/issue1230540)
             # So what we can do is to override the Service.listen() implementation so it includes try-catch block with exceptions
             # being forwarded to the sys.excepthook function.
-            from service import Service
-            run_original = Service.listen
+            from service import service_listener
+            run_original = service_listener
             def listen(self):
                 try:
                     run_original(self)
                 except:
                     sys.excepthook(*sys.exc_info())
-            Service.listen = listen
+            service_listener = listen
 
         # Logger setup
         FORMAT = '[%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'

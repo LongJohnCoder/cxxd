@@ -43,11 +43,9 @@ class Service():
     def __call__(self, payload):
         pass
 
-    def listen(self):
-        while self.keep_listening is True:
-            payload = self.queue.get()
-            self.action.get(payload[0], self.__unknown_action)(payload[1])
-        logging.info("Service shut down.")
+    def process_request(self):
+        payload = self.queue.get()
+        self.action.get(payload[0], self.__unknown_action)(payload[1])
 
     def send_startup_request(self, payload):
         self.queue.put([0x0, payload])
@@ -57,3 +55,12 @@ class Service():
 
     def send_request(self, payload):
         self.queue.put([0x2, payload])
+
+    def is_shut_down(self):
+        return self.keep_listening == False
+
+
+def service_listener(service):
+    while not service.is_shut_down():
+        service.process_request()
+    logging.info('Service listener shut down ...')
