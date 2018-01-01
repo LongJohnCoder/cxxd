@@ -8,5 +8,5 @@ class ServicePlugin():
     def __shutdown_callback(self, success, payload):
         pass
 
-    def __call__(self, success, args, payload):
+    def __call__(self, success, payload, args):
         pass
