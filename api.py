@@ -130,8 +130,6 @@ def indexer_drop_all_and_run_on_directory_request(handle):
 def indexer_find_all_references_request(handle, filename, line, col):
     indexer_request(handle, SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, filename, line, col)
 
-
-
 #
 # Project builder service API
 #

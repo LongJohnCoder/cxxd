@@ -1,6 +1,8 @@
 import logging
 from multiprocessing import Queue
 
+# TODO Service impl. is where bits from ServiceHandler impl. should really go
+
 class Service():
     def __init__(self, service_plugin):
         self.queue = Queue()
@@ -31,6 +33,15 @@ class Service():
 
     def __unknown_action(self, payload):
         logging.error("Unknown action triggered! Valid actions are: {0}".format(self.action))
+
+    def startup_callback(self, payload):
+        pass
+
+    def shutdown_callback(self, payload):
+        pass
+
+    def __call__(self, payload):
+        pass
 
     def listen(self):
         while self.keep_listening is True:
