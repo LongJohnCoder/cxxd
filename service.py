@@ -46,7 +46,7 @@ class Service():
 
     def __unknown_action(self, payload):
         logging.error("Unknown action triggered! Valid actions are: {0}".format(self.action))
-        return True
+        return self.started_up
 
     def startup_callback(self, payload):
         pass
