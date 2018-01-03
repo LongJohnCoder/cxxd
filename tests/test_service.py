@@ -6,6 +6,7 @@ import service
 
 class ServiceTest(unittest.TestCase):
     def setUp(self):
+        self.unsupported_request = 0xFF
         self.payload = [0x1, 0x2, 0x3]
         self.service = service.Service(cxxd_mocks.ServicePluginMock())
 
@@ -176,6 +177,50 @@ class ServiceTest(unittest.TestCase):
         manager.assert_has_calls(
             [mock.call.mock_service_request(self.payload), mock.call.mock_service_plugin_request(True, self.payload, None)]
         )
+
+    def test_if_send_startup_request_returns_true_after_first_startup(self):
+        self.service.send_startup_request(self.payload)
+        self.assertEqual(self.service.process_request(), True)
+
+    def test_if_send_startup_request_returns_true_if_service_is_already_started(self):
+        self.service.send_startup_request(self.payload)
+        self.service.process_request()
+        self.service.send_startup_request(self.payload)
+        self.assertEqual(self.service.process_request(), True)
+
+    def test_if_send_shutdown_request_returns_false_after_shutdown(self):
+        self.service.send_startup_request(self.payload)
+        self.service.process_request()
+        self.service.send_shutdown_request(self.payload)
+        self.assertEqual(self.service.process_request(), False)
+
+    def test_if_send_shutdown_request_returns_false_if_service_is_already_shutdown(self):
+        self.service.send_startup_request(self.payload)
+        self.service.process_request()
+        self.service.send_shutdown_request(self.payload)
+        self.service.process_request()
+        self.service.send_shutdown_request(self.payload)
+        self.assertEqual(self.service.process_request(), False)
+
+    def test_if_send_request_returns_true_if_service_is_started(self):
+        self.service.send_startup_request(self.payload)
+        self.service.process_request()
+        self.service.send_request(self.payload)
+        self.assertEqual(self.service.process_request(), True)
+
+    def test_if_send_request_returns_false_if_service_is_not_started(self):
+        self.service.send_request(self.payload)
+        self.assertEqual(self.service.process_request(), False)
+
+    def test_if_unsupported_request_returns_true_if_service_is_started(self):
+        self.service.send_startup_request(self.payload)
+        self.service.process_request()
+        self.service.queue.put([self.unsupported_request, self.payload])
+        self.assertEqual(self.service.process_request(), True)
+
+    def test_if_unsupported_request_returns_false_if_service_is_not_started(self):
+        self.service.queue.put([self.unsupported_request, self.payload])
+        self.assertEqual(self.service.process_request(), False)
 
 if __name__ == '__main__':
     unittest.main()
