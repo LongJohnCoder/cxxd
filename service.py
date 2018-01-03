@@ -59,7 +59,8 @@ class Service():
 
     def process_request(self):
         payload = self.queue.get()
-        return self.action.get(payload[0], self.__unknown_action)(payload[1])
+        still_running = self.action.get(payload[0], self.__unknown_action)(payload[1])
+        return still_running
 
     def send_startup_request(self, payload):
         self.queue.put([0x0, payload])
