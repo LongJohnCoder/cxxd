@@ -41,7 +41,8 @@ def start_server(get_server_instance, get_server_instance_args, log_file):
 
         # Instantiate and run the server
         try:
-            get_server_instance(handle, args).listen()
+            from server import server_listener
+            server_listener(get_server_instance(handle, args))
         except:
             sys.excepthook(*sys.exc_info())
 

@@ -79,7 +79,7 @@ class Server():
             ServerRequestId.SHUTDOWN_AND_EXIT     : self.__shutdown_and_exit
             # TODO add runtime debugging switch action
         }
-        self.keep_listening = True
+        self.started_up = True
         logging.info("Registered services: {0}".format(self.service))
         logging.info("Actions: {0}".format(self.action))
 
@@ -91,6 +91,7 @@ class Server():
             logging.info(
                 "id={0}, service='{1}', payload={2}".format(serviceId, svc_handler.service.__class__.__name__, dummyPayload)
             )
+        return self.started_up
 
     def __start_service(self, serviceId, payload):
         svc_handler = self.service.get(serviceId, None)
@@ -102,6 +103,7 @@ class Server():
             svc_handler.startup_request(payload)
         else:
             logging.error("Starting the service not possible. No service found under id={0}.".format(serviceId))
+        return self.started_up
 
     def __shutdown_all_services(self, dummyServiceId, payload):
         logging.info("Shutting down all registered services ... {0}".format(self.service))
@@ -112,6 +114,7 @@ class Server():
             )
         for svc_handler in self.service.itervalues():
             svc_handler.stop_listening()
+        return self.started_up
 
     def __shutdown_service(self, serviceId, payload):
         svc_handler = self.service.get(serviceId, None)
@@ -123,11 +126,13 @@ class Server():
             svc_handler.stop_listening()
         else:
             logging.error("Shutting down the service not possible. No service found under id={0}.".format(serviceId))
+        return self.started_up
 
     def __shutdown_and_exit(self, dummyServiceId, payload):
         logging.info("Shutting down the server ...")
         self.__shutdown_all_services(dummyServiceId, payload)
-        self.keep_listening = False
+        self.started_up = False
+        return self.started_up
 
     def __send_service_request(self, serviceId, payload):
         svc_handler = self.service.get(serviceId, None)
@@ -138,15 +143,22 @@ class Server():
             svc_handler.request(payload)
         else:
             logging.error("Sending a request to the service not possible. No service found under id={0}.".format(serviceId))
+        return self.started_up
 
     def __unknown_action(self, serviceId, payload):
         logging.error("Unknown action triggered! Valid actions are: {0}".format(self.action))
+        return self.started_up
 
-    def listen(self):
-        while self.keep_listening is True:
-            payload = self.handle.get()
-            self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
-        logging.info("Server shut down.")
+    def process_request(self):
+        payload = self.handle.get()
+        still_running = self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
+        return still_running
+
+def server_listener(server):
+    keep_listening = True
+    while keep_listening:
+        keep_listening = server.process_request()
+    logging.info("Server listener shut down ...")
 
 
 
