@@ -222,5 +222,16 @@ class ServiceTest(unittest.TestCase):
         self.service.queue.put([self.unsupported_request, self.payload])
         self.assertEqual(self.service.process_request(), False)
 
+    def test_if_service_restart_is_handled_well(self):
+        self.service.send_startup_request(self.payload)
+        self.service.process_request()
+        self.assertEqual(self.service.is_started_up(), True)
+        self.service.send_shutdown_request(self.payload)
+        self.service.process_request()
+        self.assertEqual(self.service.is_started_up(), False)
+        self.service.send_startup_request(self.payload)
+        self.service.process_request()
+        self.assertEqual(self.service.is_started_up(), True)
+
 if __name__ == '__main__':
     unittest.main()
