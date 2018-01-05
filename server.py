@@ -154,6 +154,9 @@ class Server():
         still_running = self.action.get(int(payload[0]), self.__unknown_action)(int(payload[1]), payload[2])
         return still_running
 
+    def is_started_up(self):
+        return self.started_up
+
 def server_listener(server):
     keep_listening = True
     while keep_listening:
