@@ -26,10 +26,10 @@ class Server():
             self.process = None
 
         def start_listening(self):
-            from service import service_listener
             if self.is_started():
                 logging.warning("Service process already started!")
             else:
+                from service import service_listener
                 self.process = Process(target=service_listener, args=(self.service,), name=self.service.__class__.__name__)
                 self.process.daemon = False
                 self.process.start()
