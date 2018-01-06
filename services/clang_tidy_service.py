@@ -8,15 +8,13 @@ import cxxd.service
 class ClangTidy(cxxd.service.Service):
     def __init__(self, service_plugin):
         cxxd.service.Service.__init__(self, service_plugin)
-        self.config_file = ''
         self.compiler_options = ''
         self.cmd = 'clang-tidy'
         self.clang_tidy_success_code = 0
 
     def startup_callback(self, args):
-        self.config_file = args[0]
-        compilation_database = args[1]
-        self.output_file = tempfile.NamedTemporaryFile(suffix='_clang_tidy_output', delete=True)
+        compilation_database = args[0]
+        self.output_file = tempfile.NamedTemporaryFile(suffix='_clang_tidy_output')
         root, ext = os.path.splitext(compilation_database)
         if ext == '.json':  # In case we have a JSON compilation database we simply use one
             self.compiler_options = '-p ' + compilation_database

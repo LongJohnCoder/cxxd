@@ -158,8 +158,8 @@ def clang_format_request(handle, filename):
 #
 # Clang-tidy service API
 #
-def clang_tidy_start(handle, config_file, json_compilation_database):
-    start_service(handle, ServiceId.CLANG_TIDY, config_file, json_compilation_database)
+def clang_tidy_start(handle, json_compilation_database):
+    start_service(handle, ServiceId.CLANG_TIDY, json_compilation_database)
 
 def clang_tidy_stop(handle, subscribe_for_callback):
     stop_service(handle, ServiceId.CLANG_TIDY, subscribe_for_callback)
