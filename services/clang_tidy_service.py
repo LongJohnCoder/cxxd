@@ -46,6 +46,6 @@ class ClangTidy(cxxd.service.Service):
                 start = time.clock()
                 ret = subprocess.call(clang_tidy_binary, shell=True, stdout=f)
                 end = time.clock()
-            logging.info("Clang-Tidy over '{0}' completed in {1}s.".format(filename, end-start))
+            logging.info("clang-tidy over '{0}' completed in {1}s.".format(filename, end-start))
             return ret == self.clang_tidy_success_code, self.clang_tidy_output.name
         return False, None
