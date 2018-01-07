@@ -6,24 +6,24 @@ class ClangFormatTest(unittest.TestCase):
         import tempfile
         cls.file_to_perform_clang_format_on = tempfile.NamedTemporaryFile(suffix='.cpp')
         cls.file_to_perform_clang_format_on.write(' \
-            #include <vector> \
-            int main() {      \
-                return 0;     \
-            }                 \
+            #include <vector> \n\
+            int main() {      \n\
+                return 0;     \n\
+            }                 \n\
         ')
 
         cls.clang_format_config_file = tempfile.NamedTemporaryFile()
         cls.clang_format_config_file.write('        \
-            BasedOnStyle: LLVM                      \
-            AccessModifierOffset: -4                \
-            AlwaysBreakTemplateDeclarations: true   \
-            ColumnLimit: 100                        \
-            Cpp11BracedListStyle: true              \
-            IndentWidth: 4                          \
-            MaxEmptyLinesToKeep: 2                  \
-            PointerBindsToType: true                \
-            Standard: Cpp11                         \
-            TabWidth: 4                             \
+            BasedOnStyle: LLVM                      \n\
+            AccessModifierOffset: -4                \n\
+            AlwaysBreakTemplateDeclarations: true   \n\
+            ColumnLimit: 100                        \n\
+            Cpp11BracedListStyle: true              \n\
+            IndentWidth: 4                          \n\
+            MaxEmptyLinesToKeep: 2                  \n\
+            PointerBindsToType: true                \n\
+            Standard: Cpp11                         \n\
+            TabWidth: 4                             \n\
         ')
 
     @classmethod
