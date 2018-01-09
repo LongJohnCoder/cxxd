@@ -3,9 +3,7 @@ class Diagnostics():
         self.parser = parser
 
     def __call__(self, args):
-        original_filename = str(args[0])
-        contents_filename = str(args[1])
-
+        original_filename, contents_filename = args
         diag_iter = self.parser.get_diagnostics(
             self.parser.parse(contents_filename, original_filename)
         )
