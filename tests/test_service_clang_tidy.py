@@ -4,14 +4,14 @@ class ClangTidyTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import tempfile
-        cls.file_to_perform_clang_tidy_on = tempfile.NamedTemporaryFile(suffix='.cpp')
+        cls.file_to_perform_clang_tidy_on = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
         cls.file_to_perform_clang_tidy_on.write('   \
             #include <vector>\n                     \
             int main() {     \n                     \
                 return 0;    \n                     \
             }                                       \
         ')
-        cls.json_compilation_database = tempfile.NamedTemporaryFile(suffix='.json')
+        cls.json_compilation_database = tempfile.NamedTemporaryFile(suffix='.json', bufsize=0)
         cls.json_compilation_database.write(('                  \
             {{                                            \n    \
                 "directory": "/tmp",                      \n    \

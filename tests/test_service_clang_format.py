@@ -4,7 +4,7 @@ class ClangFormatTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import tempfile
-        cls.file_to_perform_clang_format_on = tempfile.NamedTemporaryFile(suffix='.cpp')
+        cls.file_to_perform_clang_format_on = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
         cls.file_to_perform_clang_format_on.write(' \
             #include <vector> \n\
             int main() {      \n\
@@ -12,7 +12,7 @@ class ClangFormatTest(unittest.TestCase):
             }                 \n\
         ')
 
-        cls.clang_format_config_file = tempfile.NamedTemporaryFile()
+        cls.clang_format_config_file = tempfile.NamedTemporaryFile(suffix='.clang-format', bufsize=0)
         cls.clang_format_config_file.write('        \
             BasedOnStyle: LLVM                      \n\
             AccessModifierOffset: -4                \n\

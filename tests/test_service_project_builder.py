@@ -5,7 +5,7 @@ class ProjectBuilderTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import tempfile
-        cls.file_to_be_built = tempfile.NamedTemporaryFile(suffix='.cpp')
+        cls.file_to_be_built = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
         cls.file_to_be_built.write(' \
             #include <vector> \n\
             int main() {      \n\
