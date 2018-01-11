@@ -1,3 +1,7 @@
+class SymbolDatabaseMock():
+    def get_definition(self, id):
+        pass
+
 class ServiceMock():
     def send_startup_request(self, payload):
         pass

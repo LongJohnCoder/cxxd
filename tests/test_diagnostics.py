@@ -47,7 +47,7 @@ class SourceCodeModelDiagnosticsTest(unittest.TestCase):
         cls.txt_compile_flags = ['-D_GLIBCXX_DEBUG', '-Wabi', '-Wconversion', '-Winline']
         cls.txt_compilation_database = tempfile.NamedTemporaryFile(suffix='.txt', bufsize=0)
         cls.txt_compilation_database.write('\n'.join(cls.txt_compile_flags))
-        
+
         cls.parser = parser.clang_parser.ClangParser(
             cls.txt_compilation_database.name,
             parser.tunit_cache.TranslationUnitCache(parser.tunit_cache.NoCache())
