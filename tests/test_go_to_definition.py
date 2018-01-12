@@ -5,52 +5,15 @@ import unittest
 
 import parser.clang_parser
 import parser.tunit_cache
+from file_generator import FileGenerator
 
 class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import tempfile
-        cls.test_file = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.test_file.write('\
-#include <vector>       \n\
-                        \n\
-int foobar() {          \n\
-    return 0;           \n\
-}                       \n\
-                        \n\
-int main() {            \n\
-    std::vector<int> v; \n\
-    return foobar();    \n\
-}                       \n\
-                        \n\
-int fun() {             \n\
-    return bar();       \n\
-}                       \n\
-        ')
-
-        cls.test_file_edited = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.test_file_edited.write('\
-#include <vector>           \n\
-                            \n\
-                            \n\
-int foobar() {              \n\
-    return 0;               \n\
-}                           \n\
-                            \n\
-int main() {                \n\
-    std::vector<int> v;     \n\
-    int result = foobar();  \n\
-    return result;          \n\
-}                           \n\
-                            \n\
-int fun() {                 \n\
-    return bar();           \n\
-}                           \n\
-        ')
-
-        cls.txt_compile_flags = ['-D_GLIBCXX_DEBUG', '-Wabi', '-Wconversion', '-Winline']
-        cls.txt_compilation_database = open('compile_flags.txt', 'w') # tempfile.NamedTemporaryFile(suffix='.txt', bufsize=0) # TODO handle this somehow differently. apply to other unit tests as well (make a common utility class)
-        cls.txt_compilation_database.write('\n'.join(cls.txt_compile_flags))
+        cls.test_file                = FileGenerator.gen_simple_cpp_file()
+        cls.test_file_edited         = FileGenerator.gen_simple_cpp_file(edited=True)
+        cls.txt_compilation_database = FileGenerator.gen_txt_compilation_database()
 
         cls.parser = parser.clang_parser.ClangParser(
             cls.txt_compilation_database.name,
@@ -59,9 +22,9 @@ int fun() {                 \n\
 
     @classmethod
     def tearDownClass(cls):
-        cls.test_file.close()
-        cls.test_file_edited.close()
-        cls.txt_compilation_database.close()
+        FileGenerator.close_gen_file(cls.test_file)
+        FileGenerator.close_gen_file(cls.test_file_edited)
+        FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
         import cxxd_mocks

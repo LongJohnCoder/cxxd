@@ -2,51 +2,17 @@ import unittest
 
 import parser.clang_parser
 import parser.tunit_cache
+from file_generator import FileGenerator
 
 class SourceCodeModelDiagnosticsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import tempfile
-        cls.test_file_with_no_diagnostics = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.test_file_with_no_diagnostics.write(' \
-            #include <vector> \n\
-            int main() {      \n\
-                return 0;     \n\
-            }                 \n\
-        ')
-
-        cls.test_file_with_no_diagnostics_edited = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.test_file_with_no_diagnostics_edited.write(' \
-            #include <vector> \n\
-                              \n\
-            int main() {      \n\
-                return 0;     \n\
-            }                 \n\
-        ')
-
-        cls.test_file_with_compile_errors = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.test_file_with_compile_errors.write(' \
-            #include <vector> \n\
-            compile error     \n\
-            int main() {      \n\
-                return 0;     \n\
-            }                 \n\
-        ')
-
-        cls.test_file_with_compile_errors_edited = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.test_file_with_compile_errors_edited.write(' \
-            #include <vector> \n\
-                              \n\
-            compile error     \n\
-                              \n\
-            int main() {      \n\
-                return 0;     \n\
-            }                 \n\
-        ')
-
-        cls.txt_compile_flags = ['-D_GLIBCXX_DEBUG', '-Wabi', '-Wconversion', '-Winline']
-        cls.txt_compilation_database = tempfile.NamedTemporaryFile(suffix='.txt', bufsize=0)
-        cls.txt_compilation_database.write('\n'.join(cls.txt_compile_flags))
+        cls.test_file_with_no_diagnostics        = FileGenerator.gen_simple_cpp_file()
+        cls.test_file_with_no_diagnostics_edited = FileGenerator.gen_simple_cpp_file(edited=True)
+        cls.test_file_with_compile_errors        = FileGenerator.gen_broken_cpp_file()
+        cls.test_file_with_compile_errors_edited = FileGenerator.gen_broken_cpp_file(edited=True)
+        cls.txt_compilation_database             = FileGenerator.gen_txt_compilation_database()
 
         cls.parser = parser.clang_parser.ClangParser(
             cls.txt_compilation_database.name,
@@ -55,11 +21,11 @@ class SourceCodeModelDiagnosticsTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.test_file_with_no_diagnostics.close()
-        cls.test_file_with_no_diagnostics_edited.close()
-        cls.test_file_with_compile_errors.close()
-        cls.test_file_with_compile_errors_edited.close()
-        cls.txt_compilation_database.close()
+        FileGenerator.close_gen_file(cls.test_file_with_no_diagnostics)
+        FileGenerator.close_gen_file(cls.test_file_with_no_diagnostics_edited)
+        FileGenerator.close_gen_file(cls.test_file_with_compile_errors)
+        FileGenerator.close_gen_file(cls.test_file_with_compile_errors_edited)
+        FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
         import cxxd_mocks
