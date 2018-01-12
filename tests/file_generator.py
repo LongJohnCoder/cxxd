@@ -21,7 +21,7 @@ int main() {                \n\
 }                           \n\
                             \n\
 int fun() {                 \n\
-    return bar();           \n\
+    return 1;               \n\
 }                           \n\
             ')
         else:
@@ -38,7 +38,7 @@ int main() {                \n\
 }                           \n\
                             \n\
 int fun() {                 \n\
-    return bar();           \n\
+    return 1;               \n\
 }                           \n\
             ')
         return fd
@@ -95,36 +95,38 @@ int fun() {                 \n\
             '-Wconversion',
             '-Winline',
         ]
-        fd = open('compile_flags.txt', 'w') # tempfile.NamedTemporaryFile(suffix='.txt', bufsize=0)
+        fd = open(tempfile.gettempdir() + os.path.sep + 'compile_flags.txt', 'w', 0)
         fd.write('\n'.join(txt_compile_flags))
         return fd
 
     @staticmethod
-    def gen_json_compilation_database():
-        fd = open('compile_commands.json', 'w') #tempfile.NamedTemporaryFile(suffix='.json', bufsize=0)
-        fd.write(('                  \
-            {{                                            \n    \
-                "directory": "/tmp",                      \n    \
-                "command": "/usr/bin/c++ -o {0}.o -c {1}",\n    \
-                "file": "{2}"                             \n    \
-            }}                                                  \
-        ').format(cls.file_to_perform_clang_tidy_on.name, cls.file_to_perform_clang_tidy_on.name, cls.file_to_perform_clang_tidy_on.name))
+    def gen_json_compilation_database(filename):
+        fd = open(tempfile.gettempdir() + os.path.sep + 'compile_commands.json', 'w', 0)
+        fd.write(('\
+[                                               \n\
+{{                                              \n\
+    "directory": "{0}",                         \n\
+    "command": "/usr/bin/c++ -o {1}.o -c {2}",  \n\
+    "file": "{3}"                               \n\
+}}                                              \n\
+]                                               \n\
+        ').format(tempfile.gettempdir(), filename, filename, filename))
         return fd
 
     @staticmethod
     def gen_clang_format_config_file():
         fd = tempfile.NamedTemporaryFile(suffix='.clang-format', bufsize=0)
-        fd.write('        \
-            BasedOnStyle: LLVM                      \n\
-            AccessModifierOffset: -4                \n\
-            AlwaysBreakTemplateDeclarations: true   \n\
-            ColumnLimit: 100                        \n\
-            Cpp11BracedListStyle: true              \n\
-            IndentWidth: 4                          \n\
-            MaxEmptyLinesToKeep: 2                  \n\
-            PointerBindsToType: true                \n\
-            Standard: Cpp11                         \n\
-            TabWidth: 4                             \n\
+        fd.write('\
+BasedOnStyle: LLVM                      \n\
+AccessModifierOffset: -4                \n\
+AlwaysBreakTemplateDeclarations: true   \n\
+ColumnLimit: 100                        \n\
+Cpp11BracedListStyle: true              \n\
+IndentWidth: 4                          \n\
+MaxEmptyLinesToKeep: 2                  \n\
+PointerBindsToType: true                \n\
+Standard: Cpp11                         \n\
+TabWidth: 4                             \n\
         ')
         return fd
 

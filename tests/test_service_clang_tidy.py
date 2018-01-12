@@ -1,33 +1,19 @@
 import unittest
 
+from file_generator import FileGenerator
+
 class ClangTidyTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import tempfile
-        cls.file_to_perform_clang_tidy_on = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.file_to_perform_clang_tidy_on.write('   \
-            #include <vector>\n                     \
-            int main() {     \n                     \
-                return 0;    \n                     \
-            }                                       \
-        ')
-        cls.json_compilation_database = tempfile.NamedTemporaryFile(suffix='.json', bufsize=0)
-        cls.json_compilation_database.write(('                  \
-            {{                                            \n    \
-                "directory": "/tmp",                      \n    \
-                "command": "/usr/bin/c++ -o {0}.o -c {1}",\n    \
-                "file": "{2}"                             \n    \
-            }}                                                  \
-        ').format(cls.file_to_perform_clang_tidy_on.name, cls.file_to_perform_clang_tidy_on.name, cls.file_to_perform_clang_tidy_on.name))
-        cls.txt_compile_flags = ['-D_GLIBCXX_DEBUG', '-Wabi', '-Wconversion', '-Winline']
-        cls.txt_compilation_database = tempfile.NamedTemporaryFile(suffix='.txt', bufsize=0)
-        cls.txt_compilation_database.write('\n'.join(cls.txt_compile_flags))
+        cls.file_to_perform_clang_tidy_on = FileGenerator.gen_simple_cpp_file()
+        cls.txt_compilation_database      = FileGenerator.gen_txt_compilation_database()
+        cls.json_compilation_database     = FileGenerator.gen_json_compilation_database(cls.file_to_perform_clang_tidy_on.name)
 
     @classmethod
     def tearDownClass(cls):
-        cls.file_to_perform_clang_tidy_on.close()
-        cls.json_compilation_database.close()
-        cls.txt_compilation_database.close()
+        FileGenerator.close_gen_file(cls.file_to_perform_clang_tidy_on)
+        FileGenerator.close_gen_file(cls.json_compilation_database)
+        FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
         import cxxd_mocks
@@ -49,7 +35,9 @@ class ClangTidyTest(unittest.TestCase):
     def test_if_startup_callback_sets_compile_flags_accordingly_when_txt_compilation_database_provided(self):
         self.assertEqual(self.service.clang_tidy_compile_flags, None)
         self.service.startup_callback([self.txt_compilation_database.name])
-        self.assertEqual(self.service.clang_tidy_compile_flags, '-- ' + ' '.join(self.txt_compile_flags))
+        with open(self.txt_compilation_database.name, 'r') as fd_compile_flags:
+            compile_flags = [flag.strip() for flag in fd_compile_flags.readlines()]
+            self.assertEqual(self.service.clang_tidy_compile_flags, '-- ' + ' '.join(compile_flags))
 
     def test_if_startup_callback_sets_compile_flags_accordingly_when_unsupported_compilation_database_provided(self):
         self.assertEqual(self.service.clang_tidy_compile_flags, None)

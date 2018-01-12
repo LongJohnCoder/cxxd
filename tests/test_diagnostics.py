@@ -7,7 +7,6 @@ from file_generator import FileGenerator
 class SourceCodeModelDiagnosticsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import tempfile
         cls.test_file_with_no_diagnostics        = FileGenerator.gen_simple_cpp_file()
         cls.test_file_with_no_diagnostics_edited = FileGenerator.gen_simple_cpp_file(edited=True)
         cls.test_file_with_compile_errors        = FileGenerator.gen_broken_cpp_file()

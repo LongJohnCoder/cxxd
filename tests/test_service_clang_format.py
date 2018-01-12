@@ -1,35 +1,17 @@
 import unittest
 
+from file_generator import FileGenerator
+
 class ClangFormatTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import tempfile
-        cls.file_to_perform_clang_format_on = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.file_to_perform_clang_format_on.write(' \
-            #include <vector> \n\
-            int main() {      \n\
-                return 0;     \n\
-            }                 \n\
-        ')
-
-        cls.clang_format_config_file = tempfile.NamedTemporaryFile(suffix='.clang-format', bufsize=0)
-        cls.clang_format_config_file.write('        \
-            BasedOnStyle: LLVM                      \n\
-            AccessModifierOffset: -4                \n\
-            AlwaysBreakTemplateDeclarations: true   \n\
-            ColumnLimit: 100                        \n\
-            Cpp11BracedListStyle: true              \n\
-            IndentWidth: 4                          \n\
-            MaxEmptyLinesToKeep: 2                  \n\
-            PointerBindsToType: true                \n\
-            Standard: Cpp11                         \n\
-            TabWidth: 4                             \n\
-        ')
+        cls.file_to_perform_clang_format_on = FileGenerator.gen_simple_cpp_file()
+        cls.clang_format_config_file        = FileGenerator.gen_clang_format_config_file()
 
     @classmethod
     def tearDownClass(cls):
-        cls.file_to_perform_clang_format_on.close()
-        cls.clang_format_config_file.close()
+        FileGenerator.close_gen_file(cls.file_to_perform_clang_format_on)
+        FileGenerator.close_gen_file(cls.clang_format_config_file)
 
     def setUp(self):
         import cxxd_mocks

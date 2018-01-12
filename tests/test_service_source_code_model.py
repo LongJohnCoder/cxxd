@@ -1,31 +1,19 @@
 import os
 import unittest
 
+from file_generator import FileGenerator
 from services.source_code_model_service import SourceCodeModelSubServiceId
 
 class SourceCodeModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import tempfile
-        cls.file_to_be_built = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
-        cls.file_to_be_built.write(' \
-            #include <vector> \n\
-            int main() {      \n\
-                return 0;     \n\
-            }                 \n\
-        ')
-        cls.json_compilation_database = tempfile.NamedTemporaryFile(suffix='.json', bufsize=0)
-        cls.json_compilation_database.write(('                          \
-            {{                                                      \n  \
-                "directory": "/tmp",                                \n  \
-                "command": "/usr/bin/c++ -o dummy.o -c dummy.cpp",  \n  \
-                "file": "dummy.cpp"                                 \n  \
-            }}                                                          \
-        '))
+        cls.file_to_be_built          = FileGenerator.gen_simple_cpp_file()
+        cls.json_compilation_database = FileGenerator.gen_json_compilation_database(cls.file_to_be_built.name)
 
     @classmethod
     def tearDownClass(cls):
-        cls.json_compilation_database.close()
+        FileGenerator.close_gen_file(cls.file_to_be_built)
+        FileGenerator.close_gen_file(cls.json_compilation_database)
 
     def setUp(self):
         import cxxd_mocks

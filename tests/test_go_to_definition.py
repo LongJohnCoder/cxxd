@@ -10,7 +10,6 @@ from file_generator import FileGenerator
 class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import tempfile
         cls.test_file                = FileGenerator.gen_simple_cpp_file()
         cls.test_file_edited         = FileGenerator.gen_simple_cpp_file(edited=True)
         cls.txt_compilation_database = FileGenerator.gen_txt_compilation_database()
