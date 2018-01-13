@@ -49,6 +49,7 @@ int fun() {                 \n\
         if edited:
             fd.write('\
 #include <vector>           \n\
+#include "does_not_exist.h" \n\
                             \n\
 trigger compile error       \n\
                             \n\
@@ -68,6 +69,7 @@ int fun() {                 \n\
         else:
             fd.write('\
 #include <vector>           \n\
+#include "does_not_exist.h" \n\
                             \n\
                             \n\
 trigger compile error       \n\
