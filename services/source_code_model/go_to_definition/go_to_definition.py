@@ -13,7 +13,7 @@ class GoToDefinition():
         line              = int(args[2])
         column            = int(args[3])
 
-        def_filename, def_line, def_column = '', 0, 0
+        def_filename, def_line, def_column = None, None, None
         cursor = self.parser.get_cursor(
                     self.parser.parse(contents_filename, original_filename),
                     line, column
@@ -38,4 +38,4 @@ class GoToDefinition():
             if def_filename == contents_filename:
                 def_filename = original_filename
 
-        return def_filename != '', [def_filename, def_line, def_column]
+        return def_filename != None, [def_filename, def_line, def_column]

@@ -80,9 +80,9 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
             )
         filename, line, column = definition
         self.assertEqual(success, False)
-        self.assertEqual(filename, '')
-        self.assertEqual(line, 0)
-        self.assertEqual(column, 0)
+        self.assertEqual(filename, None)
+        self.assertEqual(line, None)
+        self.assertEqual(column, None)
 
     def test_if_call_returns_false_and_definition_is_not_found_for_non_local_symbol_not_included_via_header_and_not_found_in_symbol_db_with_current_tunit_being_modified(self):
         cursor = mock.MagicMock(sqlite3.Cursor)
@@ -93,9 +93,9 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
             )
         filename, line, column = definition
         self.assertEqual(success, False)
-        self.assertEqual(filename, '')
-        self.assertEqual(line, 0)
-        self.assertEqual(column, 0)
+        self.assertEqual(filename, None)
+        self.assertEqual(line, None)
+        self.assertEqual(column, None)
 
     def test_if_call_returns_true_and_definition_is_found_for_non_local_symbol_not_included_via_header_but_found_in_symbol_db(self):
         cursor = mock.MagicMock(sqlite3.Cursor)
