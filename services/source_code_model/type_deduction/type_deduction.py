@@ -13,4 +13,4 @@ class TypeDeduction():
         if cursor and cursor.type:
             return True, cursor.type.spelling
         else:
-            return False, ''
+            return False, None
