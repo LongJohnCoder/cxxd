@@ -3,6 +3,23 @@ import tempfile
 
 class FileGenerator():
     @staticmethod
+    def gen_header_file_containing_includes_only(edited=False):
+        fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
+        if edited:
+            fd.write('\
+#include <vector>           \n\
+                            \n\
+#include <map>              \n\
+                            \n\
+            ')
+        else:
+            fd.write('\
+#include <vector>           \n\
+#include <map>              \n\
+            ')
+        return fd
+
+    @staticmethod
     def gen_simple_cpp_file(edited=False):
         fd = tempfile.NamedTemporaryFile(suffix='.cpp', bufsize=0)
         if edited:
