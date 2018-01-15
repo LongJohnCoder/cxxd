@@ -45,6 +45,7 @@ class ClangIndexer(object):
 
     def __unknown_op(self, id, args):
         logging.error("Unknown operation with ID={0} triggered! Valid operations are: {1}".format(id, self.op))
+        return False, None
 
     def __run_on_single_file(self, id, args):
         original_filename = str(args[0])
