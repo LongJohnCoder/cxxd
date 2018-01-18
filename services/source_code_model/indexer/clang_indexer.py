@@ -56,7 +56,7 @@ class ClangIndexer(object):
         success = True
         if contents_filename == original_filename:
             self.symbol_db.open(self.symbol_db_path)
-            self.symbol_db.delete(get_basename(self.root_directory, original_filename))
+            self.symbol_db.delete(os.path.basename(original_filename))
             success = index_single_file(
                 self.parser,
                 self.root_directory,
@@ -64,6 +64,7 @@ class ClangIndexer(object):
                 original_filename,
                 self.symbol_db
             )
+            # TODO what if index_single_file() fails? shall we revert symbol_db.delete()?
 
         return success, None
 
@@ -174,7 +175,7 @@ class ClangIndexer(object):
 
     def __drop_single_file(self, id, args):
         filename = str(args[0])
-        self.symbol_db.delete(get_basename(self.root_directory, filename))
+        self.symbol_db.delete(os.path.basename(filename))
         return True, None
 
     def __drop_all(self, id, args):
