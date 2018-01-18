@@ -53,6 +53,7 @@ class ClangIndexer(object):
         contents_filename = str(args[1])
 
         # We don't run indexer on files modified but not saved
+        success = True
         if contents_filename == original_filename:
             self.symbol_db.open(self.symbol_db_path)
             self.symbol_db.delete(get_basename(self.root_directory, original_filename))
