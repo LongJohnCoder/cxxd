@@ -25,10 +25,11 @@ class SourceCodeModelIndexerRequestId():
 
 class ClangIndexer(object):
     def __init__(self, parser, root_directory):
-        self.symbol_db_name = '.cxxd_index.db'
-        self.symbol_db = SymbolDatabase()
-        self.parser = parser
         self.root_directory = root_directory
+        self.symbol_db      = SymbolDatabase()
+        self.symbol_db_name = '.cxxd_index.db'
+        self.symbol_db_path = os.path.join(self.root_directory, self.symbol_db_name)
+        self.parser         = parser
         self.op = {
             SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE  : self.__run_on_single_file,
             SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY    : self.__run_on_directory,
@@ -53,7 +54,7 @@ class ClangIndexer(object):
 
         # We don't run indexer on files modified but not saved
         if contents_filename == original_filename:
-            self.symbol_db.open(os.path.join(self.root_directory, self.symbol_db_name))
+            self.symbol_db.open(self.symbol_db_path)
             self.symbol_db.delete(get_basename(self.root_directory, original_filename))
             success = index_single_file(
                 self.parser,
