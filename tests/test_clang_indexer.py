@@ -84,3 +84,10 @@ class ClangIndexerTest(unittest.TestCase):
         )
         self.assertEqual(success, False)
         self.assertEqual(args, None)
+
+    def test_if_drop_single_file_deletes_an_entry_from_symbol_db(self):
+        with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
+            success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
+        mock_symbol_db_delete.assert_called_once()
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
