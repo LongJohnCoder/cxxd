@@ -91,3 +91,28 @@ class ClangIndexerTest(unittest.TestCase):
         mock_symbol_db_delete.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(args, None)
+
+    def test_if_drop_all_deletes_all_entries_from_symbol_db_but_does_not_delete_the_db_from_disk(self):
+        delete_from_disk = False
+        with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+            with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
+                with mock.patch('os.remove') as mock_os_remove:
+                    success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
+        mock_symbol_db_delete_all.assert_called_once()
+        mock_symbol_db_close.assert_not_called()
+        mock_os_remove.assert_not_called()
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
+    def test_if_drop_all_deletes_all_entries_from_symbol_db_and_deletes_the_db_from_disk(self):
+        delete_from_disk = True
+        with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+            with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
+                with mock.patch('os.remove') as mock_os_remove:
+                    success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
+        mock_symbol_db_delete_all.assert_called_once()
+        mock_symbol_db_close.assert_called_once()
+        mock_os_remove.assert_called_once_with(self.service.symbol_db.filename)
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
