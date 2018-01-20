@@ -65,7 +65,6 @@ class ClangIndexer(object):
                 self.symbol_db
             )
             # TODO what if index_single_file() fails? shall we revert symbol_db.delete()?
-
         return success, None
 
     def __run_on_directory(self, id, args):
@@ -180,10 +179,11 @@ class ClangIndexer(object):
 
     def __drop_all(self, id, args):
         delete_file_from_disk = bool(args[0])
+        self.symbol_db.delete_all()
         if delete_file_from_disk:
             self.symbol_db.close()
             os.remove(self.symbol_db.filename)
-            logging.info('Indexer DB dropped.')
+        logging.info('Indexer DB dropped.')
         return True, None
 
     def __find_all_references(self, id, args):
