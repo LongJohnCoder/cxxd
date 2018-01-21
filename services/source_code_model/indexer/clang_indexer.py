@@ -99,10 +99,6 @@ class ClangIndexer(object):
                     if extension in ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp']:
                         cpp_file_list.append(os.path.join(dirpath, file))
 
-            # We will need a full path to 'clang_index.py' script
-            this_script_directory = os.path.dirname(os.path.realpath(__file__))
-            clang_index_script = os.path.join(this_script_directory, 'clang_index.py')
-
             process_list = []
             tmp_db_list = []
             tmp_filename_list = []
@@ -140,7 +136,7 @@ class ClangIndexer(object):
                 #               from another Python script ('clang_index.py') is the only way how I managed to get it
                 #               working correctly (each process will get their own instance of library)
                 #"-m " + os.path.splitext(clang_index_script)[0] + \
-                cmd = "python2 " + clang_index_script + \
+                cmd = "python2 " + get_clang_index_path() + \
                         "  --project_root_directory='" + self.root_directory + \
                         "' --compiler_args_filename='" + self.parser.get_compiler_args_db().filename() + \
                         "' --input_list='" + cpp_file_list + \
@@ -268,3 +264,8 @@ def index_single_file(parser, root_directory, contents_filename, original_filena
 
 def get_basename(root_dir, full_path):
     return full_path[len(root_dir):].lstrip(os.sep)
+
+def get_clang_index_path():
+    this_script_directory = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(this_script_directory, 'clang_index.py')
+
