@@ -1,7 +1,9 @@
 import mock
 import os
+import sqlite3
 import unittest
 
+import parser.ast_node_identifier
 import parser.clang_parser
 import parser.tunit_cache
 from file_generator import FileGenerator
@@ -29,6 +31,15 @@ class ClangIndexerTest(unittest.TestCase):
         import cxxd_mocks
         from services.source_code_model.indexer.clang_indexer import ClangIndexer
         self.unsupported_request = 0xFF
+        self.unsupported_ast_node_ids = [
+            parser.ast_node_identifier.ASTNodeId.getNamespaceId(),
+            parser.ast_node_identifier.ASTNodeId.getTemplateTypeParameterId(),
+            parser.ast_node_identifier.ASTNodeId.getTemplateNonTypeParameterId(),
+            parser.ast_node_identifier.ASTNodeId.getTemplateTemplateParameterId(),
+            parser.ast_node_identifier.ASTNodeId.getNamespaceAliasId(),
+            parser.ast_node_identifier.ASTNodeId.getUsingDirectiveId(),
+            parser.ast_node_identifier.ASTNodeId.getUnsupportedId(),
+        ]
         self.root_directory = os.path.dirname(self.test_file.name)
         self.service = ClangIndexer(self.parser, self.root_directory)
 
@@ -115,4 +126,61 @@ class ClangIndexerTest(unittest.TestCase):
         mock_os_remove.assert_called_once_with(self.service.symbol_db.filename)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
+
+    def test_if_find_all_references_returns_false_and_empty_references_list_for_invalid_translation_unit(self):
+        with mock.patch.object(self.service.parser, 'parse', return_value=None) as mock_parser_parse:
+            success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, 1, 1])
+        self.assertEqual(success, False)
+        self.assertEqual(len(references), 0)
+
+    def test_if_find_all_references_returns_true_and_empty_references_list_for_invalid_cursor(self):
+        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+            with mock.patch.object(self.service.parser, 'get_cursor', return_value=None) as mock_parser_get_cursor:
+                success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, 1, 1])
+        self.assertEqual(success, True)
+        self.assertEqual(len(references), 0)
+
+    def test_if_find_all_references_returns_true_and_empty_references_list_when_run_on_unsupported_ast_node_ids(self):
+        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                for ast_node_identifier in self.unsupported_ast_node_ids:
+                    with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=ast_node_identifier) as mock_parser_get_ast_node_id:
+                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, 1, 1])
+        self.assertEqual(success, True)
+        self.assertEqual(len(references), 0)
+
+    def test_if_find_all_references_returns_true_and_empty_references_list_when_run_on_symbol_which_does_not_have_any_occurence_in_symbol_db(self):
+        cursor = mock.MagicMock(sqlite3.Cursor)
+        cursor.fetchall.return_value = []
+        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=self.service.supported_ast_node_ids[0]) as mock_parser_get_ast_node_id:
+                    with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, 1, 1])
+        self.assertEqual(success, True)
+        self.assertEqual(len(references), 0)
+
+    def test_if_find_all_references_returns_true_and_non_empty_references_list_when_run_on_symbol_which_has_occurences_in_symbol_db(self):
+        cursor = mock.MagicMock(sqlite3.Cursor)
+        cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
+        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=self.service.supported_ast_node_ids[0]) as mock_parser_get_ast_node_id:
+                    with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, 1, 1])
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(references), 0)
+
+    def test_if_find_all_references_returns_true_and_in_non_empty_references_filename_columns_are_prepended_with_root_directory(self):
+        cursor = mock.MagicMock(sqlite3.Cursor)
+        cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
+        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=self.service.supported_ast_node_ids[0]) as mock_parser_get_ast_node_id:
+                    with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, 1, 1])
+        self.assertEqual(success, True)
+        self.assertNotEqual(len(references), 0)
+        filename = references[0][0]
+        self.assertEqual(filename.startswith(self.root_directory), True)
 
