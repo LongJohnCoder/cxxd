@@ -76,13 +76,10 @@ class ClangIndexer(object):
 
     def __run_on_directory(self, id, args):
         # Do not run indexer on whole directory if we already did it
-        directory_already_indexed = True
-        indexer_db = os.path.join(self.root_directory, self.symbol_db_name)
-        if not os.path.exists(indexer_db):
-            directory_already_indexed = False
+        directory_already_indexed = os.path.exists(self.symbol_db_path)
 
         # We still need to establish the database connection even if we don't go into indexing
-        self.symbol_db.open(indexer_db)
+        self.symbol_db.open(self.symbol_db_path)
 
         # Otherwise, index the whole directory
         if not directory_already_indexed:
