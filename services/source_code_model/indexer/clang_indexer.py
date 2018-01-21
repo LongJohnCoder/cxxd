@@ -92,12 +92,7 @@ class ClangIndexer(object):
             self.symbol_db.create_data_model()
 
             # Build-up a list of source code files from given project directory
-            cpp_file_list = []
-            for dirpath, dirs, files in os.walk(self.root_directory):
-                for file in files:
-                    name, extension = os.path.splitext(file)
-                    if extension in ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp']:
-                        cpp_file_list.append(os.path.join(dirpath, file))
+            cpp_file_list = get_cpp_file_list(self.root_directory)
 
             process_list = []
             tmp_db_list = []
@@ -268,4 +263,13 @@ def get_basename(root_dir, full_path):
 def get_clang_index_path():
     this_script_directory = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(this_script_directory, 'clang_index.py')
+
+def get_cpp_file_list(root_directory):
+    cpp_file_list = []
+    for dirpath, dirs, files in os.walk(root_directory):
+        for file in files:
+            name, extension = os.path.splitext(file)
+            if extension in ['.cpp', '.cc', '.cxx', '.c', '.h', '.hh', '.hpp']:
+                cpp_file_list.append(os.path.join(dirpath, file))
+    return cpp_file_list
 
