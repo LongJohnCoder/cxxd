@@ -96,6 +96,64 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, False)
         self.assertEqual(args, None)
 
+    def test_if_run_on_directory_skips_indexing_if_symbol_db_already_exists_in_root_directory(self):
+        with mock.patch('os.path.exists', return_value=True) as mock_os_path_exists:
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
+                    success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
+        mock_symbol_db_open.assert_called_once()
+        mock_symbol_db_create_data_model.assert_not_called()
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
+    def test_if_run_on_directory_does_not_skip_indexing_if_symbol_db_does_not_exist_in_root_directory(self):
+        with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
+                    success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
+        mock_symbol_db_open.assert_called_once()
+        mock_symbol_db_create_data_model.assert_called_once()
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
+    def test_if_run_on_directory_handles_when_there_are_no_files_existing_in_root_directory(self):
+        with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.get_cpp_file_list', return_value=[]) as mock_get_cpp_file_list:
+                        success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
+        mock_symbol_db_open.assert_called_once()
+        mock_symbol_db_create_data_model.assert_called_once()
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory)
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
+    def test_if_run_on_directory_handles_none_items_when_cpp_file_list_chunk_contains_one(self):
+        import logging
+        logging.getLoggerClass().root.handlers[0].baseFilename = 'something'
+        cpp_file_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp']
+        cpp_file_list_chunks = [cpp_file_list[0:1], cpp_file_list[2:3], cpp_file_list[4:5], [cpp_file_list[6], None]]
+        with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.get_cpp_file_list', return_value=cpp_file_list) as mock_get_cpp_file_list:
+                        with mock.patch('services.source_code_model.indexer.clang_indexer.slice_it', return_value=cpp_file_list_chunks) as mock_get_cpp_file_list:
+                            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
+        mock_symbol_db_open.assert_called_once()
+        mock_symbol_db_create_data_model.assert_called_once()
+        mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory)
+        self.assertEqual(success, True)
+        self.assertEqual(args, None)
+
+                            #with mock.patch('tempfile.mkstemp') as mock_indexer_input_tempfile_mkstemp:
+                                #with mock.patch('tempfile.mkstemp') as mock_empty_db_tempfile_mkstemp:
+                                    #with mock.patch('logging.getLoggerClass().root.handlers[0].baseFilename', return_value='/tmp/log') as mock_sth:
+        #mock_indexer_input_tempfile_mkstemp.assert_called_once_with(['.cxxd_idx_input', self.service.root_directory])
+
+    def test_if_get_clang_index_path_returns_a_valid_path(self):
+        from services.source_code_model.indexer.clang_indexer import get_clang_index_path
+        self.assertTrue(os.path.exists(get_clang_index_path()))
+
     def test_if_drop_single_file_deletes_an_entry_from_symbol_db(self):
         with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
             success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
