@@ -25,11 +25,18 @@ class SourceCodeModelIndexerRequestId():
 
 class ClangIndexer(object):
     def __init__(self, parser, root_directory):
-        self.root_directory = root_directory
-        self.symbol_db      = SymbolDatabase()
-        self.symbol_db_name = '.cxxd_index.db'
-        self.symbol_db_path = os.path.join(self.root_directory, self.symbol_db_name)
-        self.parser         = parser
+        self.root_directory         = root_directory
+        self.symbol_db              = SymbolDatabase()
+        self.symbol_db_name         = '.cxxd_index.db'
+        self.symbol_db_path         = os.path.join(self.root_directory, self.symbol_db_name)
+        self.parser                 = parser
+        self.supported_ast_node_ids = [
+            ASTNodeId.getClassId(),           ASTNodeId.getStructId(),            ASTNodeId.getEnumId(),             ASTNodeId.getEnumValueId(), # handle user-defined types
+            ASTNodeId.getUnionId(),           ASTNodeId.getTypedefId(),           ASTNodeId.getUsingDeclarationId(),
+            ASTNodeId.getFunctionId(),        ASTNodeId.getMethodId(),                                                                           # handle functions and methods
+            ASTNodeId.getLocalVariableId(),   ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),                                        # handle local/function variables and member variables
+            ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()                                                                # handle macros
+        ]
         self.op = {
             SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE  : self.__run_on_single_file,
             SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY    : self.__run_on_directory,
@@ -200,20 +207,13 @@ class ClangIndexer(object):
                 #      contrast contains an original filename).
                 usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
                 ast_node_id = self.parser.get_ast_node_id(cursor)
-                if ast_node_id in [
-                    ASTNodeId.getFunctionId(), ASTNodeId.getMethodId(),
-                    ASTNodeId.getClassId(), ASTNodeId.getStructId(), ASTNodeId.getEnumId(), ASTNodeId.getEnumValueId(),
-                    ASTNodeId.getUnionId(), ASTNodeId.getTypedefId(),
-                    ASTNodeId.getLocalVariableId(), ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),
-                    ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()
-                ]:
+                if ast_node_id in self.supported_ast_node_ids:
                     for ref in self.symbol_db.get_by_id(usr).fetchall():
                         references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
                 else:
                     pass
                 logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
             logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
-
         return tunit != None, references
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
@@ -239,13 +239,7 @@ def index_single_file(parser, root_directory, contents_filename, original_filena
             usr = ast_node.referenced.get_usr() if ast_node.referenced else ast_node.get_usr()
             line = int(parser.get_ast_node_line(ast_node))
             column = int(parser.get_ast_node_column(ast_node))
-            if id in [
-                ASTNodeId.getClassId(), ASTNodeId.getStructId(), ASTNodeId.getEnumId(), ASTNodeId.getEnumValueId(), # handle user-defined types
-                ASTNodeId.getUnionId(), ASTNodeId.getTypedefId(), ASTNodeId.getUsingDeclarationId(),
-                ASTNodeId.getFunctionId(), ASTNodeId.getMethodId(),                                                 # handle functions and methods
-                ASTNodeId.getLocalVariableId(), ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),         # handle local/function variables and member variables
-                ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()                               # handle macros
-            ]:
+            if id in self.supported_ast_node_ids:
                 symbol_db.insert_single(
                     get_basename(root_directory, ast_node_tunit_spelling),
                     line,
