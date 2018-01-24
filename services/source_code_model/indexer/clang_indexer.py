@@ -91,26 +91,21 @@ class ClangIndexer(object):
             # Build-up a list of source code files from given project directory
             cpp_file_list = get_cpp_file_list(self.root_directory)
 
-            process_list = []
-            tmp_db_list = []
-            tmp_filename_list = []
+            indexing_subprocess_list = []
+            symbol_db_list = []
+            indexer_input_list = []
 
             # We will slice the input file list into a number of chunks which corresponds to the amount of available CPU cores
             how_many_chunks = len(cpp_file_list) / multiprocessing.cpu_count()
 
             # Now we are able to parallelize the indexing operation across different CPU cores
             for cpp_file_list_chunk in slice_it(cpp_file_list, how_many_chunks):
-                # 'slice_it()' utility function may return None's as part of the slice (to fill up the slice up to the given length)
-                chunk_with_no_none_items = '\n'.join(item for item in cpp_file_list_chunk if item)
 
                 # Each subprocess will get a file containing source files to be indexed
-                cpp_file_list_handle, cpp_file_list = tempfile.mkstemp(prefix='.cxxd_idx_input', dir=self.root_directory)
-                os.write(cpp_file_list_handle, chunk_with_no_none_items)
-                os.close(cpp_file_list_handle)
+                indexer_input_handle, indexer_input = create_indexer_input_list_file(self.root_directory, '.cxxd_idx_input', cpp_file_list_chunk)
 
                 # Each subprocess will get an empty DB file to record indexing results into it
-                tmp_db_handle, tmp_db = tempfile.mkstemp(prefix=self.symbol_db_name, dir=self.root_directory)
-                os.close(tmp_db_handle)
+                symbol_db_handle, symbol_db = create_empty_symbol_db(self.root_directory, self.symbol_db_name)
 
                 # Start indexing a given chunk in a new subprocess
                 #   Note: Running and handling subprocesses as following, and not via multiprocessing.Process module,
@@ -127,38 +122,30 @@ class ClangIndexer(object):
                 #           (5) Creating a new process via subprocess.Popen interface and running the indexing operation
                 #               from another Python script ('clang_index.py') is the only way how I managed to get it
                 #               working correctly (each process will get their own instance of library)
-                #"-m " + os.path.splitext(clang_index_script)[0] + \
-                cmd = "python2 " + get_clang_index_path() + \
-                        "  --project_root_directory='" + self.root_directory + \
-                        "' --compiler_args_filename='" + self.parser.get_compiler_args_db().filename() + \
-                        "' --input_list='" + cpp_file_list + \
-                        "' --output_db_filename='" + tmp_db + \
-                        "' " + "--log_file='" + logging.getLoggerClass().root.handlers[0].baseFilename + '_' + str(len(process_list)+1) + "'"
-                p = subprocess.Popen(shlex.split(cmd))
+                indexing_subprocess = start_indexing_subprocess(
+                    self.root_directory,
+                    self.parser.get_compiler_args_db().filename(),
+                    indexer_input,
+                    symbol_db,
+                    logging.getLoggerClass().root.handlers[0].baseFilename + '_' + str(len(indexing_subprocess_list)+1)
+                )
 
                 # Store handles to subprocesses and corresponding tmp files so we can handle them later on
-                process_list.append(p)
-                tmp_db_list.append(tmp_db)
-                tmp_filename_list.append(cpp_file_list)
+                indexing_subprocess_list.append(indexing_subprocess)
+                symbol_db_list.append(symbol_db)
+                indexer_input_list.append(indexer_input)
 
-            # Wait subprocesses to finish with their work
-            for p in process_list:
-                p.wait()
+            # Wait indexing subprocesses to finish with their work
+            for indexing_subprocess in indexing_subprocess_list:
+                indexing_subprocess.wait()
 
-            # Merge the results of indexing operations
-            for db in tmp_db_list:
-                tmp_symbol_db = SymbolDatabase(db)
-                symbols = tmp_symbol_db.get_all()
-                if symbols:
-                    for sym in symbols:
-                        self.symbol_db.insert_single(sym[0], sym[1], sym[2], sym[3], sym[4], sym[5], sym[6])
-                self.symbol_db.flush()
-                tmp_symbol_db.close()
-                os.remove(db)
+            # Merge the results of indexing operations into the single symbol database
+            self.symbol_db.insert_from(symbol_db_list)
 
-            # Get rid of temporary files containing source filenames
-            for f in tmp_filename_list:
-                os.remove(f)
+            # Get rid of temporary symbol db's & indexer input list filenames
+            for symbol_db, indexer_input in zip(symbol_db_list, indexer_input_list):
+                os.remove(symbol_db)
+                os.remove(indexer_input)
 
             # TODO how to count total CPU time, for all sub-processes?
             logging.info("Indexing {0} is completed.".format(self.root_directory))
@@ -270,3 +257,23 @@ def get_cpp_file_list(root_directory):
                 cpp_file_list.append(os.path.join(dirpath, file))
     return cpp_file_list
 
+def create_indexer_input_list_file(directory, with_prefix, cpp_file_list_chunk):
+    chunk_with_no_none_items = '\n'.join(item for item in cpp_file_list_chunk if item)
+    cpp_file_list_handle, cpp_file_list = tempfile.mkstemp(prefix=with_prefix, dir=directory)
+    os.write(cpp_file_list_handle, chunk_with_no_none_items)
+    os.close(cpp_file_list_handle)
+    return cpp_file_list_handle, cpp_file_list
+
+def create_empty_symbol_db(directory, with_prefix):
+    symbol_db_handle, symbol_db = tempfile.mkstemp(prefix=with_prefix, dir=directory)
+    os.close(symbol_db_handle)
+    return symbol_db_handle, symbol_db
+
+def start_indexing_subprocess(root_directory, compiler_args_filename, indexer_input_list_filename, output_db_filename, log_filename):
+    cmd = "python2 " + get_clang_index_path() + \
+            "  --project_root_directory='" + root_directory + \
+            "' --compiler_args_filename='" + compiler_args_filename + \
+            "' --input_list='" + indexer_input_list_filename + \
+            "' --output_db_filename='" + output_db_filename + \
+            "' " + "--log_file='" + log_filename + "'"
+    return subprocess.Popen(shlex.split(cmd))

@@ -46,6 +46,16 @@ class SymbolDatabase(object):
         except sqlite3.IntegrityError:
             pass
 
+    def insert_from(self, symbol_db_filename_list):
+        for db in symbol_db_filename_list:
+            symbol_db = SymbolDatabase(db)
+            rows = symbol_db.get_all()
+            if rows:
+                for row in rows:
+                    self.insert_single(row[0], row[1], row[2], row[3], row[4], row[5], row[6])
+                self.flush()
+            symbol_db.close()
+
     def flush(self):
         self.db_connection.commit()
 
