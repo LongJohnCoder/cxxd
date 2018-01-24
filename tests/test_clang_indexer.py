@@ -129,26 +129,35 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(args, None)
 
     def test_if_run_on_directory_handles_none_items_when_cpp_file_list_chunk_contains_one(self):
-        import logging
+        import multiprocessing, logging, subprocess
         logging.getLoggerClass().root.handlers[0].baseFilename = 'something'
+        dummy_cmd = 'cd'
         cpp_file_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp']
         cpp_file_list_chunks = [cpp_file_list[0:1], cpp_file_list[2:3], cpp_file_list[4:5], [cpp_file_list[6], None]]
         with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
                 with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.get_cpp_file_list', return_value=cpp_file_list) as mock_get_cpp_file_list:
-                        with mock.patch('services.source_code_model.indexer.clang_indexer.slice_it', return_value=cpp_file_list_chunks) as mock_get_cpp_file_list:
+                        with mock.patch('services.source_code_model.indexer.clang_indexer.slice_it', return_value=cpp_file_list_chunks) as mock_slice_it, \
+                            mock.patch('services.source_code_model.indexer.clang_indexer.create_indexer_input_list_file', return_value=(None, 'indexer_input_list_file',)) as mock_create_indexer_input_list_file, \
+                            mock.patch('services.source_code_model.indexer.clang_indexer.create_empty_symbol_db', return_value=(None, 'empty_symbol_db_filename',)) as mock_create_empty_symbol_db, \
+                            mock.patch('services.source_code_model.indexer.clang_indexer.start_indexing_subprocess', return_value=subprocess.Popen(dummy_cmd)) as mock_start_indexing_subprocess, \
+                            mock.patch('subprocess.Popen.wait') as mock_subprocess_wait, \
+                            mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.insert_from'), \
+                            mock.patch('os.remove') as mock_os_remove:
                             success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
         mock_symbol_db_open.assert_called_once()
         mock_symbol_db_create_data_model.assert_called_once()
         mock_get_cpp_file_list.assert_called_once_with(self.service.root_directory)
+        mock_slice_it.assert_called_once_with(cpp_file_list, len(cpp_file_list)/multiprocessing.cpu_count())
+        mock_create_empty_symbol_db.assert_called_with(self.service.root_directory, self.service.symbol_db_name)
+        self.assertEqual(mock_create_indexer_input_list_file.call_count, len(cpp_file_list_chunks))
+        self.assertEqual(mock_create_empty_symbol_db.call_count, len(cpp_file_list_chunks))
+        self.assertEqual(mock_start_indexing_subprocess.call_count, len(cpp_file_list_chunks))
+        self.assertEqual(mock_os_remove.call_count, 2*len(cpp_file_list_chunks))
+        self.assertEqual(mock_subprocess_wait.call_count, len(cpp_file_list_chunks))
         self.assertEqual(success, True)
         self.assertEqual(args, None)
-
-                            #with mock.patch('tempfile.mkstemp') as mock_indexer_input_tempfile_mkstemp:
-                                #with mock.patch('tempfile.mkstemp') as mock_empty_db_tempfile_mkstemp:
-                                    #with mock.patch('logging.getLoggerClass().root.handlers[0].baseFilename', return_value='/tmp/log') as mock_sth:
-        #mock_indexer_input_tempfile_mkstemp.assert_called_once_with(['.cxxd_idx_input', self.service.root_directory])
 
     def test_if_get_clang_index_path_returns_a_valid_path(self):
         from services.source_code_model.indexer.clang_indexer import get_clang_index_path
