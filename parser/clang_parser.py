@@ -109,7 +109,9 @@ class ClangParser():
         def visitor(cursor, parent, include_directives_list):
             if cursor.location.file and cursor.location.file.name == tunit.spelling:  # we're only interested in symbols from associated translation unit
                 if cursor.kind == clang.cindex.CursorKind.INCLUSION_DIRECTIVE:
-                    include_directives_list.append((ClangParser.__get_included_file_name(cursor), cursor.location.line, cursor.location.column),)
+                    included_file_name = ClangParser.__get_included_file_name(cursor)
+                    if included_file_name:
+                        include_directives_list.append((included_file_name, cursor.location.line, cursor.location.column),)
                 return ChildVisitResult.CONTINUE.value  # We don't want to waste time traversing recursively for include directives
             return ChildVisitResult.CONTINUE.value
 
