@@ -248,6 +248,64 @@ class ClangIndexerTest(unittest.TestCase):
         filename = references[0][0]
         self.assertEqual(filename.startswith(self.root_directory), True)
 
+    def test_if_index_file_list_runs_indexer_for_given_set_of_args(self):
+        from services.source_code_model.indexer.clang_indexer import index_file_list
+        from parser.tunit_cache import NoCache
+        root_directory = os.path.dirname(self.test_file.name)
+        input_filename_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp']
+        compiler_args_filename = 'compiler_args.json'
+        output_db_filename = 'out.db'
+        manager = mock.MagicMock()
+        with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.__init__', return_value=None) as mock_symbol_db_creation, \
+            mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.__del__', return_value=None) as mock_symbol_db_deletion, \
+            mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.create_data_model') as mock_symbol_db_create_data_model, \
+            mock.patch('services.source_code_model.indexer.clang_indexer.ClangParser.__init__', return_value=None) as mock_clang_parser_creation, \
+            mock.patch('services.source_code_model.indexer.clang_indexer.TranslationUnitCache') as mock_translation_unit_cache, \
+            mock.patch('services.source_code_model.indexer.clang_indexer.NoCache') as mock_translation_unit_no_cache_strategy, \
+            mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file, \
+            mock.patch('__builtin__.open', mock.mock_open(read_data='\n'.join(input_filename_list)), create=True), \
+            mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.close') as mock_symbol_db_close:
+                manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
+                index_file_list(root_directory, 'dummy_input_file', compiler_args_filename, output_db_filename)
+        mock_symbol_db_creation.assert_called_once_with(output_db_filename)
+        mock_symbol_db_create_data_model.assert_called_once()
+        mock_clang_parser_creation.assert_called_once_with(compiler_args_filename, mock.ANY) #NoCache())
+        mock_translation_unit_cache.assert_called_once()
+        mock_translation_unit_no_cache_strategy.assert_called_once()
+        self.assertEqual(mock_index_single_file.call_count, len(input_filename_list))
+        manager.assert_has_calls(
+            [
+                mock.call.mock_index_single_file(
+                    mock.ANY, root_directory,
+                    input_filename_list[0], input_filename_list[0], mock.ANY
+                ),
+                mock.call.mock_index_single_file(
+                    mock.ANY, root_directory,
+                    input_filename_list[1], input_filename_list[1], mock.ANY
+                ),
+                mock.call.mock_index_single_file(
+                    mock.ANY, root_directory,
+                    input_filename_list[2], input_filename_list[2], mock.ANY
+                ),
+                mock.call.mock_index_single_file(
+                    mock.ANY, root_directory,
+                    input_filename_list[3], input_filename_list[3], mock.ANY
+                ),
+                mock.call.mock_index_single_file(
+                    mock.ANY, root_directory,
+                    input_filename_list[4], input_filename_list[4], mock.ANY
+                ),
+                mock.call.mock_index_single_file(
+                    mock.ANY, root_directory,
+                    input_filename_list[5], input_filename_list[5], mock.ANY
+                ),
+                mock.call.mock_index_single_file(
+                    mock.ANY, root_directory,
+                    input_filename_list[6], input_filename_list[6], mock.ANY
+                )
+            ]
+        )
+        mock_symbol_db_close.assert_called_once()
 
     def test_if_get_clang_index_path_returns_a_valid_path(self):
         from services.source_code_model.indexer.clang_indexer import get_clang_index_path
