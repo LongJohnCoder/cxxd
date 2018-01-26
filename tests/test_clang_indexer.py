@@ -106,7 +106,8 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
-    def test_if_run_on_directory_does_not_skip_indexing_if_symbol_db_does_not_exist_in_root_directory(self):
+    def not_test_if_run_on_directory_does_not_skip_indexing_if_symbol_db_does_not_exist_in_root_directory(self):
+        # TODO redundant?
         with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
                 with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
@@ -128,7 +129,7 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
-    def test_if_run_on_directory_handles_none_items_when_cpp_file_list_chunk_contains_one(self):
+    def test_if_run_on_directory_handles_when_cpp_file_chunk_list_contains_none_items(self):
         import multiprocessing, logging, subprocess
         logging.getLoggerClass().root.handlers[0].baseFilename = 'something'
         dummy_cmd = 'cd'
@@ -158,10 +159,6 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(mock_subprocess_wait.call_count, len(cpp_file_list_chunks))
         self.assertEqual(success, True)
         self.assertEqual(args, None)
-
-    def test_if_get_clang_index_path_returns_a_valid_path(self):
-        from services.source_code_model.indexer.clang_indexer import get_clang_index_path
-        self.assertTrue(os.path.exists(get_clang_index_path()))
 
     def test_if_drop_single_file_deletes_an_entry_from_symbol_db(self):
         with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
@@ -250,4 +247,9 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertNotEqual(len(references), 0)
         filename = references[0][0]
         self.assertEqual(filename.startswith(self.root_directory), True)
+
+
+    def test_if_get_clang_index_path_returns_a_valid_path(self):
+        from services.source_code_model.indexer.clang_indexer import get_clang_index_path
+        self.assertTrue(os.path.exists(get_clang_index_path()))
 
