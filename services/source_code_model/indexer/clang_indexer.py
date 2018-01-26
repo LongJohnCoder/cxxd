@@ -196,7 +196,7 @@ def index_file_list(root_directory, input_filename_list, compiler_args_filename,
     symbol_db.create_data_model()
     parser = ClangParser(compiler_args_filename, TranslationUnitCache(NoCache()))
     with open(input_filename_list, 'r') as input_list:
-        for filename in input_list:
+        for filename in input_list.readlines():
             index_single_file(parser, root_directory, filename.strip(), filename.strip(), symbol_db)
     symbol_db.close()
 
