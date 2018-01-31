@@ -307,6 +307,19 @@ class ClangIndexerTest(unittest.TestCase):
         )
         mock_symbol_db_close.assert_called_once()
 
+    def test_if_index_single_file_parses_traverses_and_flushes_the_symbol_db(self):
+        from services.source_code_model.indexer.clang_indexer import index_single_file
+        from services.source_code_model.indexer.clang_indexer import indexer_visitor
+        from services.source_code_model.indexer.symbol_database import SymbolDatabase
+        symbol_db = SymbolDatabase('tmp.db')
+        with mock.patch.object(self.parser, 'parse') as mock_parser_parse:
+            with mock.patch.object(self.parser, 'traverse') as mock_parser_traverse:
+                with mock.patch('services.source_code_model.indexer.clang_indexer.SymbolDatabase.flush') as mock_symbol_db_flush:
+                    index_single_file(self.parser, os.path.dirname(self.test_file.name), self.test_file.name, self.test_file.name, symbol_db)
+        mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
+        mock_parser_traverse.assert_called_once_with(mock.ANY, mock.ANY, indexer_visitor)
+        mock_symbol_db_flush.assert_called_once()
+
     def test_if_get_clang_index_path_returns_a_valid_path(self):
         from services.source_code_model.indexer.clang_indexer import get_clang_index_path
         self.assertTrue(os.path.exists(get_clang_index_path()))
