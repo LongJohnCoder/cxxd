@@ -1,3 +1,4 @@
+import linecache
 import logging
 import multiprocessing
 import os
@@ -200,49 +201,45 @@ def index_file_list(root_directory, input_filename_list, compiler_args_filename,
             index_single_file(parser, root_directory, filename.strip(), filename.strip(), symbol_db)
     symbol_db.close()
 
-
-def index_single_file(parser, root_directory, contents_filename, original_filename, symbol_db):
+def indexer_visitor(ast_node, ast_parent_node, args):
     def extract_cursor_context(filename, line):
-        import linecache
         return linecache.getline(filename, line)
 
-    def visitor(ast_node, ast_parent_node, parser):
-        ast_node_location = ast_node.location
-        ast_node_tunit_spelling = ast_node.translation_unit.spelling
-        if (ast_node_location.file and ast_node_location.file.name == ast_node_tunit_spelling):  # we are not interested in symbols which got into this TU via includes
-            id = parser.get_ast_node_id(ast_node)
-            usr = ast_node.referenced.get_usr() if ast_node.referenced else ast_node.get_usr()
-            line = int(parser.get_ast_node_line(ast_node))
-            column = int(parser.get_ast_node_column(ast_node))
-            if id in self.supported_ast_node_ids:
-                symbol_db.insert_single(
-                    get_basename(root_directory, ast_node_tunit_spelling),
-                    line,
-                    column,
-                    usr,
-                    extract_cursor_context(ast_node_tunit_spelling, line),
-                    ast_node.referenced._kind_id if ast_node.referenced else ast_node._kind_id,
-                    ast_node.is_definition()
-                )
-            else:
-                pass
-            return ChildVisitResult.RECURSE.value  # If we are positioned in TU of interest, then we'll traverse through all descendants
-        return ChildVisitResult.CONTINUE.value  # Otherwise, we'll skip to the next sibling
+    parser, symbol_db = args
+    ast_node_location = ast_node.location
+    ast_node_tunit_spelling = ast_node.translation_unit.spelling
+    if (ast_node_location.file and ast_node_location.file.name == ast_node_tunit_spelling):  # we are not interested in symbols which got into this TU via includes
+        id = parser.get_ast_node_id(ast_node)
+        usr = ast_node.referenced.get_usr() if ast_node.referenced else ast_node.get_usr()
+        line = int(parser.get_ast_node_line(ast_node))
+        column = int(parser.get_ast_node_column(ast_node))
+        if id in self.supported_ast_node_ids:
+            symbol_db.insert_single(
+                os.path.basename(ast_node_tunit_spelling),
+                line,
+                column,
+                usr,
+                extract_cursor_context(ast_node_tunit_spelling, line),
+                ast_node.referenced._kind_id if ast_node.referenced else ast_node._kind_id,
+                ast_node.is_definition()
+            )
+        else:
+            pass
+        return ChildVisitResult.RECURSE.value  # If we are positioned in TU of interest, then we'll traverse through all descendants
+    return ChildVisitResult.CONTINUE.value  # Otherwise, we'll skip to the next sibling
 
-    logging.info("Indexing a file '{0}' ... ".format(original_filename))
 
+def index_single_file(parser, root_directory, contents_filename, original_filename, symbol_db):
     # Index a single file
+    logging.info("Indexing a file '{0}' ... ".format(original_filename))
     start = time.clock()
     tunit = parser.parse(contents_filename, original_filename)
     if tunit:
-        parser.traverse(tunit.cursor, parser, visitor)
+        parser.traverse(tunit.cursor, [parser, symbol_db], indexer_visitor)
         symbol_db.flush()
     time_elapsed = time.clock() - start
     logging.info("Indexing {0} took {1}.".format(original_filename, time_elapsed))
     return tunit != None
-
-def get_basename(root_dir, full_path):
-    return full_path[len(root_dir):].lstrip(os.sep)
 
 def get_clang_index_path():
     this_script_directory = os.path.dirname(os.path.realpath(__file__))
