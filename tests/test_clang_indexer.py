@@ -62,14 +62,17 @@ class ClangIndexerTest(unittest.TestCase):
         manager = mock.MagicMock()
         with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
             with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
-                with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=True) as mock_index_single_file:
-                    manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
-                    manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
-                    manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
-                    success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+                with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=True) as mock_index_single_file:
+                        manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
+                        manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
+                        manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
+                        manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
+                        success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
         manager.assert_has_calls(
             [
                 mock.call.mock_symbol_db_open(self.service.symbol_db_path),
+                mock.call.mock_remove_root_dir_from_filename(self.root_directory, self.test_file.name),
                 mock.call.mock_symbol_db_delete_entry(os.path.basename(self.test_file.name)),
                 mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.test_file.name, self.service.symbol_db)
             ]
@@ -81,14 +84,17 @@ class ClangIndexerTest(unittest.TestCase):
         manager = mock.MagicMock()
         with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
             with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
-                with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=False) as mock_index_single_file:
-                    manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
-                    manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
-                    manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
-                    success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+                with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=False) as mock_index_single_file:
+                        manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
+                        manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
+                        manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
+                        manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
+                        success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
         manager.assert_has_calls(
             [
                 mock.call.mock_symbol_db_open(self.service.symbol_db_path),
+                mock.call.mock_remove_root_dir_from_filename(self.root_directory, self.test_file.name),
                 mock.call.mock_symbol_db_delete_entry(os.path.basename(self.test_file.name)),
                 mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.test_file.name, self.service.symbol_db)
             ]
@@ -162,8 +168,10 @@ class ClangIndexerTest(unittest.TestCase):
 
     def test_if_drop_single_file_deletes_an_entry_from_symbol_db(self):
         with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
-            success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
-        mock_symbol_db_delete.assert_called_once()
+            with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
+        mock_symbol_db_delete.assert_called_once_with(os.path.basename(self.test_file.name))
+        mock_remove_root_dir_from_filename.assert_called_once_with(self.root_directory, self.test_file.name)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
@@ -319,6 +327,10 @@ class ClangIndexerTest(unittest.TestCase):
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_traverse.assert_called_once_with(mock.ANY, mock.ANY, indexer_visitor)
         mock_symbol_db_flush.assert_called_once()
+
+    def test_if_remove_root_dir_from_filename_returns_basename_without_root_dir_and_without_path_separator(self):
+        from services.source_code_model.indexer.clang_indexer import remove_root_dir_from_filename
+        self.assertEqual(remove_root_dir_from_filename('/home/user/project_root_dir/', '/home/user/project_root_dir/lib/impl.cpp'), 'lib/impl.cpp')
 
     def test_if_get_clang_index_path_returns_a_valid_path(self):
         from services.source_code_model.indexer.clang_indexer import get_clang_index_path

@@ -65,7 +65,7 @@ class ClangIndexer(object):
         success = True
         if contents_filename == original_filename:
             self.symbol_db.open(self.symbol_db_path)
-            self.symbol_db.delete(os.path.basename(original_filename))
+            self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, original_filename))
             success = index_single_file(
                 self.parser,
                 self.root_directory,
@@ -158,7 +158,7 @@ class ClangIndexer(object):
 
     def __drop_single_file(self, id, args):
         filename = str(args[0])
-        self.symbol_db.delete(os.path.basename(filename))
+        self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, filename))
         return True, None
 
     def __drop_all(self, id, args):
@@ -206,17 +206,17 @@ def indexer_visitor(ast_node, ast_parent_node, args):
     def extract_cursor_context(filename, line):
         return linecache.getline(filename, line)
 
-    parser, symbol_db = args
+    parser, symbol_db, root_directory = args
     ast_node_location = ast_node.location
     ast_node_tunit_spelling = ast_node.translation_unit.spelling
-    if (ast_node_location.file and ast_node_location.file.name == ast_node_tunit_spelling):  # we are not interested in symbols which got into this TU via includes
+    if ast_node_location.file and ast_node_location.file.name == ast_node_tunit_spelling:  # we are not interested in symbols which got into this TU via includes
         id = parser.get_ast_node_id(ast_node)
         usr = ast_node.referenced.get_usr() if ast_node.referenced else ast_node.get_usr()
         line = int(parser.get_ast_node_line(ast_node))
         column = int(parser.get_ast_node_column(ast_node))
         if id in ClangIndexer.supported_ast_node_ids:
             symbol_db.insert_single(
-                os.path.basename(ast_node_tunit_spelling),
+                remove_root_dir_from_filename(root_directory, ast_node_tunit_spelling),
                 line,
                 column,
                 usr,
@@ -224,19 +224,15 @@ def indexer_visitor(ast_node, ast_parent_node, args):
                 ast_node.referenced._kind_id if ast_node.referenced else ast_node._kind_id,
                 ast_node.is_definition()
             )
-        else:
-            pass
         return ChildVisitResult.RECURSE.value  # If we are positioned in TU of interest, then we'll traverse through all descendants
     return ChildVisitResult.CONTINUE.value  # Otherwise, we'll skip to the next sibling
 
-
 def index_single_file(parser, root_directory, contents_filename, original_filename, symbol_db):
-    # Index a single file
     logging.info("Indexing a file '{0}' ... ".format(original_filename))
     start = time.clock()
     tunit = parser.parse(contents_filename, original_filename)
     if tunit:
-        parser.traverse(tunit.cursor, [parser, symbol_db], indexer_visitor)
+        parser.traverse(tunit.cursor, [parser, symbol_db, root_directory], indexer_visitor)
         symbol_db.flush()
     time_elapsed = time.clock() - start
     logging.info("Indexing {0} took {1}.".format(original_filename, time_elapsed))
