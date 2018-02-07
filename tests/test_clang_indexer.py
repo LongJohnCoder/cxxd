@@ -112,17 +112,6 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
-    def not_test_if_run_on_directory_does_not_skip_indexing_if_symbol_db_does_not_exist_in_root_directory(self):
-        # TODO redundant?
-        with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
-            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
-                    success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
-        mock_symbol_db_open.assert_called_once()
-        mock_symbol_db_create_data_model.assert_called_once()
-        self.assertEqual(success, True)
-        self.assertEqual(args, None)
-
     def test_if_run_on_directory_handles_when_there_are_no_files_existing_in_root_directory(self):
         with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
