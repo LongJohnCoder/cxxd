@@ -264,7 +264,6 @@ def create_indexer_input_list_file(directory, with_prefix, cpp_file_list_chunk):
 
 def create_empty_symbol_db(directory, with_prefix):
     symbol_db_handle, symbol_db = tempfile.mkstemp(prefix=with_prefix, dir=directory)
-    os.close(symbol_db_handle)
     return symbol_db_handle, symbol_db
 
 def start_indexing_subprocess(root_directory, compiler_args_filename, indexer_input_list_filename, output_db_filename, log_filename):
