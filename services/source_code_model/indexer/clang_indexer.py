@@ -25,19 +25,20 @@ class SourceCodeModelIndexerRequestId():
     FIND_ALL_REFERENCES       = 0x10
 
 class ClangIndexer(object):
+    supported_ast_node_ids = [
+        ASTNodeId.getClassId(),           ASTNodeId.getStructId(),            ASTNodeId.getEnumId(),             ASTNodeId.getEnumValueId(), # handle user-defined types
+        ASTNodeId.getUnionId(),           ASTNodeId.getTypedefId(),           ASTNodeId.getUsingDeclarationId(),
+        ASTNodeId.getFunctionId(),        ASTNodeId.getMethodId(),                                                                           # handle functions and methods
+        ASTNodeId.getLocalVariableId(),   ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),                                        # handle local/function variables and member variables
+        ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()                                                                # handle macros
+    ]
+
     def __init__(self, parser, root_directory):
         self.root_directory         = root_directory
         self.symbol_db              = SymbolDatabase()
         self.symbol_db_name         = '.cxxd_index.db'
         self.symbol_db_path         = os.path.join(self.root_directory, self.symbol_db_name)
         self.parser                 = parser
-        self.supported_ast_node_ids = [
-            ASTNodeId.getClassId(),           ASTNodeId.getStructId(),            ASTNodeId.getEnumId(),             ASTNodeId.getEnumValueId(), # handle user-defined types
-            ASTNodeId.getUnionId(),           ASTNodeId.getTypedefId(),           ASTNodeId.getUsingDeclarationId(),
-            ASTNodeId.getFunctionId(),        ASTNodeId.getMethodId(),                                                                           # handle functions and methods
-            ASTNodeId.getLocalVariableId(),   ASTNodeId.getFunctionParameterId(), ASTNodeId.getFieldId(),                                        # handle local/function variables and member variables
-            ASTNodeId.getMacroDefinitionId(), ASTNodeId.getMacroInstantiationId()                                                                # handle macros
-        ]
         self.op = {
             SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE  : self.__run_on_single_file,
             SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY    : self.__run_on_directory,
@@ -183,7 +184,7 @@ class ClangIndexer(object):
                 #      contrast contains an original filename).
                 usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
                 ast_node_id = self.parser.get_ast_node_id(cursor)
-                if ast_node_id in self.supported_ast_node_ids:
+                if ast_node_id in ClangIndexer.supported_ast_node_ids:
                     for ref in self.symbol_db.get_by_id(usr).fetchall():
                         references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
                 else:
@@ -213,7 +214,7 @@ def indexer_visitor(ast_node, ast_parent_node, args):
         usr = ast_node.referenced.get_usr() if ast_node.referenced else ast_node.get_usr()
         line = int(parser.get_ast_node_line(ast_node))
         column = int(parser.get_ast_node_column(ast_node))
-        if id in self.supported_ast_node_ids:
+        if id in ClangIndexer.supported_ast_node_ids:
             symbol_db.insert_single(
                 os.path.basename(ast_node_tunit_spelling),
                 line,
