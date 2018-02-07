@@ -21,3 +21,30 @@ class ServicePluginMock():
 
     def __call__(self, success, payload, args):
         pass
+
+class SourceLocationMock():
+    class File:
+        def __init__(self, filename):
+            self.filename = filename
+
+        @property
+        def name(self):
+            return self.filename
+
+    def __init__(self, filename, line, column):
+        self.file = self.File(filename)
+        self.line = line
+        self.column = column
+
+    @property
+    def file(self):
+        return self.file
+
+class TranslationUnitMock():
+    def __init__(self, filename):
+        self.filename = filename
+
+    @property
+    def spelling(self):
+        return self.filename
+

@@ -1,13 +1,22 @@
+import clang.cindex
 import mock
 import os
 import sqlite3
 import unittest
 
+import cxxd_mocks
 import parser.ast_node_identifier
 import parser.clang_parser
 import parser.tunit_cache
 from file_generator import FileGenerator
 from services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
+from services.source_code_model.indexer.clang_indexer import ClangIndexer
+from services.source_code_model.indexer.clang_indexer import get_clang_index_path
+from services.source_code_model.indexer.clang_indexer import index_file_list
+from services.source_code_model.indexer.clang_indexer import index_single_file
+from services.source_code_model.indexer.clang_indexer import indexer_visitor
+from services.source_code_model.indexer.clang_indexer import remove_root_dir_from_filename
+from services.source_code_model.indexer.symbol_database import SymbolDatabase
 
 class ClangIndexerTest(unittest.TestCase):
     @classmethod
@@ -28,8 +37,6 @@ class ClangIndexerTest(unittest.TestCase):
         FileGenerator.close_gen_file(cls.txt_compilation_database)
 
     def setUp(self):
-        import cxxd_mocks
-        from services.source_code_model.indexer.clang_indexer import ClangIndexer
         self.unsupported_request = 0xFF
         self.unsupported_ast_node_ids = [
             parser.ast_node_identifier.ASTNodeId.getNamespaceId(),
@@ -245,9 +252,7 @@ class ClangIndexerTest(unittest.TestCase):
         filename = references[0][0]
         self.assertEqual(filename.startswith(self.root_directory), True)
 
-    def test_if_index_file_list_runs_indexer_for_given_set_of_args(self):
-        from services.source_code_model.indexer.clang_indexer import index_file_list
-        from parser.tunit_cache import NoCache
+    def test_if_index_file_list_runs_indexing_for_each_of_the_files_given(self):
         root_directory = os.path.dirname(self.test_file.name)
         input_filename_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp']
         compiler_args_filename = 'compiler_args.json'
@@ -266,7 +271,7 @@ class ClangIndexerTest(unittest.TestCase):
                 index_file_list(root_directory, 'dummy_input_file', compiler_args_filename, output_db_filename)
         mock_symbol_db_creation.assert_called_once_with(output_db_filename)
         mock_symbol_db_create_data_model.assert_called_once()
-        mock_clang_parser_creation.assert_called_once_with(compiler_args_filename, mock.ANY) #NoCache())
+        mock_clang_parser_creation.assert_called_once_with(compiler_args_filename, mock.ANY) # TODO how to test/mock against NoCache() temp object
         mock_translation_unit_cache.assert_called_once()
         mock_translation_unit_no_cache_strategy.assert_called_once()
         self.assertEqual(mock_index_single_file.call_count, len(input_filename_list))
@@ -305,9 +310,6 @@ class ClangIndexerTest(unittest.TestCase):
         mock_symbol_db_close.assert_called_once()
 
     def test_if_index_single_file_parses_traverses_and_flushes_the_symbol_db(self):
-        from services.source_code_model.indexer.clang_indexer import index_single_file
-        from services.source_code_model.indexer.clang_indexer import indexer_visitor
-        from services.source_code_model.indexer.symbol_database import SymbolDatabase
         symbol_db = SymbolDatabase('tmp.db')
         with mock.patch.object(self.parser, 'parse') as mock_parser_parse:
             with mock.patch.object(self.parser, 'traverse') as mock_parser_traverse:
@@ -317,11 +319,54 @@ class ClangIndexerTest(unittest.TestCase):
         mock_parser_traverse.assert_called_once_with(mock.ANY, mock.ANY, indexer_visitor)
         mock_symbol_db_flush.assert_called_once()
 
+    def test_if_indexer_visitor_inserts_a_single_entry_to_symbol_db_for_ast_node_from_tunit_under_test_and_recurses_further(self):
+        location_mock = mock.PropertyMock(return_value=cxxd_mocks.SourceLocationMock(self.test_file.name, 10, 15))
+        translation_unit_mock = cxxd_mocks.TranslationUnitMock(self.test_file.name)
+        ast_node = mock.MagicMock(clang.cindex.Cursor)
+        type(ast_node).location = location_mock
+        type(ast_node).translation_unit = translation_unit_mock
+        symbol_db = SymbolDatabase('tmp.db')
+        args = [self.parser, symbol_db, self.root_directory]
+        with mock.patch.object(self.parser, 'get_ast_node_id', return_value=ClangIndexer.supported_ast_node_ids[0]):
+            with mock.patch.object(symbol_db, 'insert_single') as mock_symbol_db_insert_single:
+                with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                    ret = indexer_visitor(ast_node, None, args)
+        self.assertEqual(ret, parser.clang_parser.ChildVisitResult.RECURSE.value)
+        mock_remove_root_dir_from_filename.assert_called_once_with(self.root_directory, translation_unit_mock.spelling)
+        mock_symbol_db_insert_single.assert_called_once()
+
+    def test_if_indexer_visitor_does_not_insert_an_entry_to_symbol_db_for_unsupported_ast_node_whose_from_other_tunits_but_recurses_further(self):
+        location_mock = mock.PropertyMock(return_value=cxxd_mocks.SourceLocationMock(self.test_file.name, 10, 15))
+        translation_unit_mock = cxxd_mocks.TranslationUnitMock(self.test_file.name)
+        ast_node = mock.MagicMock(clang.cindex.Cursor)
+        type(ast_node).location = location_mock
+        type(ast_node).translation_unit = translation_unit_mock
+        symbol_db = SymbolDatabase('tmp.db')
+        args = [self.parser, symbol_db, self.root_directory]
+        with mock.patch.object(self.parser, 'get_ast_node_id', return_value=self.unsupported_ast_node_ids[0]) as mock_get_ast_node_id:
+            with mock.patch.object(symbol_db, 'insert_single') as mock_symbol_db_insert_single:
+                ret = indexer_visitor(ast_node, None, args)
+        self.assertEqual(ret, parser.clang_parser.ChildVisitResult.RECURSE.value)
+        mock_get_ast_node_id.assert_called_once()
+        mock_symbol_db_insert_single.assert_not_called()
+
+    def test_if_indexer_visitor_does_not_insert_an_entry_to_symbol_db_for_ast_node_from_another_tunit_and_does_not_recurse_further(self):
+        location_mock = mock.PropertyMock(return_value=cxxd_mocks.SourceLocationMock(self.test_file.name, 10, 15))
+        translation_unit_mock = cxxd_mocks.TranslationUnitMock('some_other_tunit')
+        ast_node = mock.MagicMock(clang.cindex.Cursor)
+        type(ast_node).location = location_mock
+        type(ast_node).translation_unit = translation_unit_mock
+        symbol_db = SymbolDatabase('tmp.db')
+        args = [self.parser, symbol_db, self.root_directory]
+        with mock.patch.object(symbol_db, 'insert_single') as mock_symbol_db_insert_single:
+            ret = indexer_visitor(ast_node, None, args)
+        self.assertEqual(ret, parser.clang_parser.ChildVisitResult.CONTINUE.value)
+        mock_symbol_db_insert_single.assert_not_called()
+
     def test_if_remove_root_dir_from_filename_returns_basename_without_root_dir_and_without_path_separator(self):
-        from services.source_code_model.indexer.clang_indexer import remove_root_dir_from_filename
         self.assertEqual(remove_root_dir_from_filename('/home/user/project_root_dir/', '/home/user/project_root_dir/lib/impl.cpp'), 'lib/impl.cpp')
 
     def test_if_get_clang_index_path_returns_a_valid_path(self):
-        from services.source_code_model.indexer.clang_indexer import get_clang_index_path
         self.assertTrue(os.path.exists(get_clang_index_path()))
 
+    # TODO fuzz the ClangIndexer interface ...
