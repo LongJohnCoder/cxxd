@@ -12,6 +12,7 @@ from file_generator import FileGenerator
 from services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
 from services.source_code_model.indexer.clang_indexer import ClangIndexer
 from services.source_code_model.indexer.clang_indexer import get_clang_index_path
+from services.source_code_model.indexer.clang_indexer import get_cpp_file_list
 from services.source_code_model.indexer.clang_indexer import index_file_list
 from services.source_code_model.indexer.clang_indexer import index_single_file
 from services.source_code_model.indexer.clang_indexer import indexer_visitor
@@ -369,4 +370,28 @@ class ClangIndexerTest(unittest.TestCase):
     def test_if_get_clang_index_path_returns_a_valid_path(self):
         self.assertTrue(os.path.exists(get_clang_index_path()))
 
-    # TODO fuzz the ClangIndexer interface ...
+    def test_if_get_cpp_file_list_returns_cpp_files_only(self):
+        os_walk_dir_list = (self.root_directory)
+        os_walk_file_list = ('/tmp/a.cpp', '/tmp/b.cc', '/tmp/c.cxx', '/tmp/d.c', '/tmp/e.h', '/tmp/f.hh', '/tmp/g.hpp')
+        with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
+            cpp_list = get_cpp_file_list(self.root_directory)
+        mock_os_walk.assert_called_once_with(self.root_directory)
+        self.assertEqual(len(os_walk_file_list), len(cpp_list))
+
+    def test_if_get_cpp_file_list_does_not_include_non_cpp_files(self):
+        os_walk_dir_list = (self.root_directory)
+        os_walk_file_list = ('/tmp/a.md', '/tmp/b.txt', '/tmp/c.json')
+        with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
+            cpp_list = get_cpp_file_list(self.root_directory)
+        mock_os_walk.assert_called_once_with(self.root_directory)
+        self.assertEqual(0, len(cpp_list))
+
+    def test_if_get_cpp_file_list_returns_empty_list_for_no_files_found(self):
+        os_walk_dir_list = (self.root_directory)
+        os_walk_file_list = ()
+        with mock.patch('os.walk', return_value=[(self.root_directory, os_walk_dir_list, os_walk_file_list),]) as mock_os_walk:
+            cpp_list = get_cpp_file_list(self.root_directory)
+        mock_os_walk.assert_called_once_with(self.root_directory)
+        self.assertEqual(0, len(cpp_list))
+
+# TODO fuzz the ClangIndexer interface ...
