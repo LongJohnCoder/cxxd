@@ -394,4 +394,9 @@ class ClangIndexerTest(unittest.TestCase):
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(0, len(cpp_list))
 
+    def test_if_create_empty_symbol_db_creates_an_empty_file_with_given_prefix_in_given_directory(self):
+        symbol_db_prefix = 'tmp_symbol_db'
+        with mock.patch('tempfile.mkstemp', return_value=(None, None)) as mock_mkstemp:
+            create_empty_symbol_db(self.root_directory, symbol_db_prefix)
+        mock_mkstemp.assert_called_once_with(prefix=symbol_db_prefix, dir=self.root_directory)
 # TODO fuzz the ClangIndexer interface ...
