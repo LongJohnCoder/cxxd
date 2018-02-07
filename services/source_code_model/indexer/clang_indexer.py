@@ -258,7 +258,6 @@ def create_indexer_input_list_file(directory, with_prefix, cpp_file_list_chunk):
     chunk_with_no_none_items = '\n'.join(item for item in cpp_file_list_chunk if item)
     cpp_file_list_handle, cpp_file_list = tempfile.mkstemp(prefix=with_prefix, dir=directory)
     os.write(cpp_file_list_handle, chunk_with_no_none_items)
-    os.close(cpp_file_list_handle)
     return cpp_file_list_handle, cpp_file_list
 
 def create_empty_symbol_db(directory, with_prefix):

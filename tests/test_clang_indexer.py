@@ -11,6 +11,8 @@ import parser.tunit_cache
 from file_generator import FileGenerator
 from services.source_code_model.indexer.clang_indexer import SourceCodeModelIndexerRequestId
 from services.source_code_model.indexer.clang_indexer import ClangIndexer
+from services.source_code_model.indexer.clang_indexer import create_empty_symbol_db
+from services.source_code_model.indexer.clang_indexer import create_indexer_input_list_file
 from services.source_code_model.indexer.clang_indexer import get_clang_index_path
 from services.source_code_model.indexer.clang_indexer import get_cpp_file_list
 from services.source_code_model.indexer.clang_indexer import index_file_list
@@ -394,9 +396,30 @@ class ClangIndexerTest(unittest.TestCase):
         mock_os_walk.assert_called_once_with(self.root_directory)
         self.assertEqual(0, len(cpp_list))
 
+    def test_if_create_indexer_input_list_file_creates_a_file_containing_newline_separated_list_of_files_with_given_prefix_in_given_directory(self):
+        input_list_prefix = 'input_list_0'
+        cpp_file_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp']
+        cpp_files_newline_separated = '/tmp/a.cpp\n/tmp/b.cpp\n/tmp/c.cpp\n/tmp/d.cpp\n/tmp/e.cpp\n/tmp/f.cpp\n/tmp/g.cpp'
+        with mock.patch('tempfile.mkstemp', return_value=(None, None)) as mock_mkstemp:
+            with mock.patch('os.write') as mock_os_write:
+                create_indexer_input_list_file(self.root_directory, input_list_prefix, cpp_file_list)
+        mock_mkstemp.assert_called_once_with(prefix=input_list_prefix, dir=self.root_directory)
+        mock_os_write.assert_called_once_with(mock.ANY, cpp_files_newline_separated)
+
+    def test_if_create_indexer_input_list_file_creates_a_file_containing_newline_separated_list_of_files_with_given_prefix_in_given_directory_and_can_handle_none_items_in_the_list(self):
+        input_list_prefix = 'input_list_0'
+        cpp_file_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp', None]
+        cpp_files_newline_separated = '/tmp/a.cpp\n/tmp/b.cpp\n/tmp/c.cpp\n/tmp/d.cpp\n/tmp/e.cpp\n/tmp/f.cpp\n/tmp/g.cpp'
+        with mock.patch('tempfile.mkstemp', return_value=(None, None)) as mock_mkstemp:
+            with mock.patch('os.write') as mock_os_write:
+                create_indexer_input_list_file(self.root_directory, input_list_prefix, cpp_file_list)
+        mock_mkstemp.assert_called_once_with(prefix=input_list_prefix, dir=self.root_directory)
+        mock_os_write.assert_called_once_with(mock.ANY, cpp_files_newline_separated)
+
     def test_if_create_empty_symbol_db_creates_an_empty_file_with_given_prefix_in_given_directory(self):
         symbol_db_prefix = 'tmp_symbol_db'
         with mock.patch('tempfile.mkstemp', return_value=(None, None)) as mock_mkstemp:
             create_empty_symbol_db(self.root_directory, symbol_db_prefix)
         mock_mkstemp.assert_called_once_with(prefix=symbol_db_prefix, dir=self.root_directory)
+
 # TODO fuzz the ClangIndexer interface ...
