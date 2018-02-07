@@ -242,6 +242,9 @@ def index_single_file(parser, root_directory, contents_filename, original_filena
     logging.info("Indexing {0} took {1}.".format(original_filename, time_elapsed))
     return tunit != None
 
+def remove_root_dir_from_filename(root_dir, full_path):
+    return full_path[len(root_dir):].lstrip(os.sep)
+
 def get_clang_index_path():
     this_script_directory = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(this_script_directory, 'clang_index.py')
