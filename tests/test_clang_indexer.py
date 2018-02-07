@@ -19,6 +19,7 @@ from services.source_code_model.indexer.clang_indexer import index_file_list
 from services.source_code_model.indexer.clang_indexer import index_single_file
 from services.source_code_model.indexer.clang_indexer import indexer_visitor
 from services.source_code_model.indexer.clang_indexer import remove_root_dir_from_filename
+from services.source_code_model.indexer.clang_indexer import start_indexing_subprocess
 from services.source_code_model.indexer.symbol_database import SymbolDatabase
 
 class ClangIndexerTest(unittest.TestCase):
@@ -421,5 +422,22 @@ class ClangIndexerTest(unittest.TestCase):
         with mock.patch('tempfile.mkstemp', return_value=(None, None)) as mock_mkstemp:
             create_empty_symbol_db(self.root_directory, symbol_db_prefix)
         mock_mkstemp.assert_called_once_with(prefix=symbol_db_prefix, dir=self.root_directory)
+
+    def test_if_start_indexing_subprocess_invokes_correctly_clang_index_script(self):
+        indexer_input_filename = 'input0'
+        output_db_filename = 'output0.db'
+        log_filename = 'log.txt'
+        expected_cmd = 'python2 ' + \
+            get_clang_index_path() + \
+            ' --project_root_directory=\'' + self.root_directory + \
+            '\' --compiler_args_filename=\'' + self.txt_compilation_database.name + \
+            '\' --input_list=\'' + indexer_input_filename + \
+            '\' --output_db_filename=\'' + output_db_filename + \
+            '\' --log_file=\'' + log_filename + '\''
+        with mock.patch('shlex.split') as mock_shlex_split:
+            with mock.patch('subprocess.Popen') as mock_subprocess_popen:
+                start_indexing_subprocess(self.root_directory, self.txt_compilation_database.name, indexer_input_filename, output_db_filename, log_filename)
+        mock_shlex_split.assert_called_once_with(expected_cmd)
+        mock_subprocess_popen.assert_called_once()
 
 # TODO fuzz the ClangIndexer interface ...
