@@ -173,6 +173,7 @@ class ClangIndexer(object):
     def __find_all_references(self, id, args):
         start = time.clock()
         references = []
+        cursor = None
         tunit = self.parser.parse(str(args[0]), str(args[0]))
         if tunit:
             cursor = self.parser.get_cursor(tunit, int(args[1]), int(args[2]))
@@ -191,7 +192,7 @@ class ClangIndexer(object):
                     pass
                 logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
             logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
-        return tunit != None, references
+        return tunit != None and cursor != None, references
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
     symbol_db = SymbolDatabase(output_db_filename)
