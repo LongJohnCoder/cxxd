@@ -42,7 +42,7 @@ class Server():
                 logging.warning("Service process already stopped!")
 
         def is_started(self):
-            return self.process != None
+            return self.process is not None
 
         def startup_request(self, payload):
             if self.is_started():

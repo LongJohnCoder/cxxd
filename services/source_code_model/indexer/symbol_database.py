@@ -26,7 +26,7 @@ class SymbolDatabase(object):
             self.db_connection = None
 
     def is_open(self):
-        return self.db_connection != None
+        return self.db_connection is not None
 
     def get_all(self):
         # TODO Use generators

@@ -38,4 +38,4 @@ class GoToDefinition():
             if def_filename == contents_filename:
                 def_filename = original_filename
 
-        return def_filename != None, [def_filename, def_line, def_column]
+        return def_filename is not None, [def_filename, def_line, def_column]

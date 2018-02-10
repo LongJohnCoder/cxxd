@@ -173,26 +173,22 @@ class ClangIndexer(object):
     def __find_all_references(self, id, args):
         start = time.clock()
         references = []
-        cursor = None
         tunit = self.parser.parse(str(args[0]), str(args[0]))
-        if tunit:
-            cursor = self.parser.get_cursor(tunit, int(args[1]), int(args[2]))
-            if cursor:
-                # TODO In order to make find-all-references work on edited (and not yet saved) files,
-                #      we would need to manipulate directly with USR.
-                #      In case of edited files, USR contains a name of a temporary file we serialized
-                #      the contents in and therefore will not match the USR in the database (which in
-                #      contrast contains an original filename).
-                usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
-                ast_node_id = self.parser.get_ast_node_id(cursor)
-                if ast_node_id in ClangIndexer.supported_ast_node_ids:
-                    for ref in self.symbol_db.get_by_id(usr).fetchall():
-                        references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
-                else:
-                    pass
-                logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
-            logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
-        return tunit != None and cursor != None, references
+        cursor = self.parser.get_cursor(tunit, int(args[1]), int(args[2]))
+        if cursor:
+            # TODO In order to make find-all-references work on edited (and not yet saved) files,
+            #      we would need to manipulate directly with USR.
+            #      In case of edited files, USR contains a name of a temporary file we serialized
+            #      the contents in and therefore will not match the USR in the database (which in
+            #      contrast contains an original filename).
+            usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
+            ast_node_id = self.parser.get_ast_node_id(cursor)
+            if ast_node_id in ClangIndexer.supported_ast_node_ids:
+                for ref in self.symbol_db.get_by_id(usr).fetchall():
+                    references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
+            logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
+        logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
+        return tunit is not None and cursor is not None, references
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):
     symbol_db = SymbolDatabase(output_db_filename)
@@ -237,7 +233,7 @@ def index_single_file(parser, root_directory, contents_filename, original_filena
         symbol_db.flush()
     time_elapsed = time.clock() - start
     logging.info("Indexing {0} took {1}.".format(original_filename, time_elapsed))
-    return tunit != None
+    return tunit is not None
 
 def remove_root_dir_from_filename(root_dir, full_path):
     return full_path[len(root_dir):].lstrip(os.sep)

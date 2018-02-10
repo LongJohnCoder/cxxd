@@ -13,4 +13,4 @@ class GoToInclude():
             if l == line:
                 include_filename = filename
                 break
-        return (tunit != None and include_filename != None), include_filename
+        return (tunit is not None and include_filename is not None), include_filename

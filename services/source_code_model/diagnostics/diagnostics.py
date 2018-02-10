@@ -7,4 +7,4 @@ class Diagnostics():
         diag_iter = self.parser.get_diagnostics(
             self.parser.parse(contents_filename, original_filename)
         )
-        return diag_iter != None, diag_iter
+        return diag_iter is not None, diag_iter

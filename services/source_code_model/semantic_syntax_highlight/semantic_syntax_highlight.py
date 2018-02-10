@@ -14,7 +14,7 @@ class SemanticSyntaxHighlight():
         contents_filename = str(args[1])
 
         tunit = self.parser.parse(contents_filename, original_filename)
-        return tunit != None, [tunit, self.__traverse__]
+        return tunit is not None, [tunit, self.__traverse__]
 
 def semantic_syntax_highlight_visitor(ast_node, ast_parent_node, data):
     parser, tunit_spelling, client_callback, client_data = data
