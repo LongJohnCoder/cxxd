@@ -182,11 +182,11 @@ class ClangIndexer(object):
             #      the contents in and therefore will not match the USR in the database (which in
             #      contrast contains an original filename).
             usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
-            ast_node_id = self.parser.get_ast_node_id(cursor)
-            if ast_node_id in ClangIndexer.supported_ast_node_ids:
-                for ref in self.symbol_db.get_by_id(usr).fetchall():
-                    references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
-            logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start))
+            for ref in self.symbol_db.get_by_id(usr).fetchall():
+                references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
+            logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(
+                cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start)
+            )
         logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
         return tunit is not None and cursor is not None, references
 

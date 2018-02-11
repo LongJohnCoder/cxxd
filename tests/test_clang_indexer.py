@@ -220,31 +220,16 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, False)
         self.assertEqual(len(references), 0)
 
-    def test_if_find_all_references_returns_true_and_empty_references_list_when_run_on_unsupported_ast_node_ids(self):
-        line, column = 1, 1
-        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
-            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
-                for ast_node_identifier in self.unsupported_ast_node_ids:
-                    with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=ast_node_identifier) as mock_parser_get_ast_node_id:
-                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
-        mock_parser_parse.assert_called_with(self.test_file.name, self.test_file.name)
-        mock_parser_get_cursor.assert_called_with(mock_parser_parse.return_value, line, column)
-        mock_parser_get_ast_node_id.assert_called_with(mock_parser_get_cursor.return_value)
-        self.assertEqual(success, True)
-        self.assertEqual(len(references), 0)
-
     def test_if_find_all_references_returns_true_and_empty_references_list_when_run_on_symbol_which_does_not_have_any_occurence_in_symbol_db(self):
         line, column = 1, 1
         cursor = mock.MagicMock(sqlite3.Cursor)
         cursor.fetchall.return_value = []
         with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
             with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
-                with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=self.service.supported_ast_node_ids[0]) as mock_parser_get_ast_node_id:
-                    with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
-                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+                with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
-        mock_parser_get_ast_node_id.assert_called_with(mock_parser_get_cursor.return_value)
         mock_symbol_db_get_by_id.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(len(references), 0)
@@ -255,12 +240,10 @@ class ClangIndexerTest(unittest.TestCase):
         cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
         with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
             with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
-                with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=self.service.supported_ast_node_ids[0]) as mock_parser_get_ast_node_id:
-                    with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
-                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+                with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
-        mock_parser_get_ast_node_id.assert_called_with(mock_parser_get_cursor.return_value)
         mock_symbol_db_get_by_id.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
@@ -271,12 +254,10 @@ class ClangIndexerTest(unittest.TestCase):
         cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
         with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
             with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
-                with mock.patch.object(self.service.parser, 'get_ast_node_id', return_value=self.service.supported_ast_node_ids[0]) as mock_parser_get_ast_node_id:
-                    with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
-                        success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+                with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
-        mock_parser_get_ast_node_id.assert_called_with(mock_parser_get_cursor.return_value)
         mock_symbol_db_get_by_id.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
@@ -386,7 +367,7 @@ class ClangIndexerTest(unittest.TestCase):
             mock_clang_cursor_is_definition.return_value
         )
 
-    def test_if_indexer_visitor_does_not_insert_an_entry_to_symbol_db_for_unsupported_ast_node_whose_from_other_tunits_but_recurses_further(self):
+    def test_if_indexer_visitor_does_not_insert_an_entry_to_symbol_db_for_unsupported_ast_node_and_recurses_further(self):
         line, column = 10, 15
         location_mock = mock.PropertyMock(return_value=cxxd_mocks.SourceLocationMock(self.test_file.name, line, column))
         translation_unit_mock = cxxd_mocks.TranslationUnitMock(self.test_file.name)
