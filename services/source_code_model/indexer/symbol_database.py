@@ -40,9 +40,10 @@ class SymbolDatabase(object):
 
     def insert_single(self, filename, line, column, unique_id, context, symbol_kind, is_definition):
         try:
-            self.db_connection.cursor().execute('INSERT INTO symbol VALUES (?, ?, ?, ?, ?, ?, ?)',
-                (filename, line, column, unique_id, context, symbol_kind, is_definition,)
-            )
+            if unique_id != '':
+                self.db_connection.cursor().execute('INSERT INTO symbol VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (filename, line, column, unique_id, context, symbol_kind, is_definition,)
+                )
         except sqlite3.IntegrityError:
             pass
 
