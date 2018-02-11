@@ -294,7 +294,12 @@ class ClangParser():
         #      If CursorKind of original cursor AST parent is not CALL_EXPR then we know that token found is CursorKind.FIELD_DECL
         assert cursor.type.kind == clang.cindex.TypeKind.DEPENDENT
         if cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR:
-            if cursor.ast_parent and (cursor.ast_parent.kind == clang.cindex.CursorKind.CALL_EXPR):
+            # TODO It seems that there's no libclang-level API to retrieve the parent of given cursor.
+            #      Issue can be worked around by storing a parent-node information during the AST traversal but that implies
+            #      that we have to traverse the AST in order to have that information. That is not going to be true for
+            #      use-cases where we simply want to extract information from given cursor without going into the
+            #      traversal itself.
+            if hasattr(cursor, 'ast_parent') and (cursor.ast_parent.kind == clang.cindex.CursorKind.CALL_EXPR):
                 for token in cursor.get_tokens():
                     if (token.kind == clang.cindex.TokenKind.IDENTIFIER) and (token.cursor.kind == clang.cindex.CursorKind.MEMBER_REF_EXPR) and (token.cursor.extent == cursor.extent):
                         return clang.cindex.CursorKind.CXX_METHOD # We've got a function member call
