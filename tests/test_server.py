@@ -24,7 +24,7 @@ class ServerTest(unittest.TestCase):
 
     def test_if_start_all_services_starts_service_listener_first_and_then_sends_startup_request_for_each_service(self):
         manager = mock.MagicMock()
-        api.start_all_services(self.handle, self.payload)
+        api.server_start_all_services(self.handle, self.payload)
         with mock.patch('server.Server.ServiceHandler.start_listening') as mock_start_listening:
             with mock.patch('server.Server.ServiceHandler.startup_request') as mock_startup_request:
                 manager.attach_mock(mock_start_listening, 'mock_start_listening')
@@ -40,7 +40,7 @@ class ServerTest(unittest.TestCase):
 
     def test_if_shutdown_all_services_sends_shutdown_request_first_and_then_stops_service_listener_for_each_service(self):
         manager = mock.MagicMock()
-        api.stop_all_services(self.handle, self.payload)
+        api.server_stop_all_services(self.handle, self.payload)
         with mock.patch('server.Server.ServiceHandler.shutdown_request') as mock_shutdown_request:
             with mock.patch('server.Server.ServiceHandler.stop_listening') as mock_stop_listening:
                 manager.attach_mock(mock_shutdown_request, 'mock_shutdown_request')
@@ -56,7 +56,7 @@ class ServerTest(unittest.TestCase):
 
     def test_if_start_service_starts_service_listener_first_and_then_sends_startup_request(self):
         manager = mock.MagicMock()
-        api.start_service(self.handle, server.ServiceId.SOURCE_CODE_MODEL, self.payload)
+        api._server_start_service(self.handle, server.ServiceId.SOURCE_CODE_MODEL, self.payload)
         with mock.patch('server.Server.ServiceHandler.start_listening') as mock_start_listening:
             with mock.patch('server.Server.ServiceHandler.startup_request') as mock_startup_request:
                 manager.attach_mock(mock_start_listening, 'mock_start_listening')
@@ -69,7 +69,7 @@ class ServerTest(unittest.TestCase):
         )
 
     def test_if_start_service_does_not_start_service_listener_or_sends_startup_request_for_unknown_service_id(self):
-        api.start_service(self.handle, self.inexisting_service_id, self.payload)
+        api._server_start_service(self.handle, self.inexisting_service_id, self.payload)
         with mock.patch('server.Server.ServiceHandler.start_listening') as mock_start_listening:
             with mock.patch('server.Server.ServiceHandler.startup_request') as mock_startup_request:
                 self.server.process_request()
@@ -78,7 +78,7 @@ class ServerTest(unittest.TestCase):
 
     def test_if_shutdown_service_sends_shutdown_request_first_and_then_shuts_down_service_listener(self):
         manager = mock.MagicMock()
-        api.stop_service(self.handle, server.ServiceId.SOURCE_CODE_MODEL, self.payload)
+        api._server_stop_service(self.handle, server.ServiceId.SOURCE_CODE_MODEL, self.payload)
         with mock.patch('server.Server.ServiceHandler.shutdown_request') as mock_shutdown_request:
             with mock.patch('server.Server.ServiceHandler.stop_listening') as mock_stop_listening:
                 manager.attach_mock(mock_shutdown_request, 'mock_shutdown_request')
@@ -91,7 +91,7 @@ class ServerTest(unittest.TestCase):
         )
 
     def test_if_shutdown_service_does_not_shutdown_service_listener_or_sends_shutdown_request_for_unknown_service_id(self):
-        api.stop_service(self.handle, self.inexisting_service_id, self.payload)
+        api._server_stop_service(self.handle, self.inexisting_service_id, self.payload)
         with mock.patch('server.Server.ServiceHandler.shutdown_request') as mock_shutdown_request:
             with mock.patch('server.Server.ServiceHandler.stop_listening') as mock_stop_listening:
                 self.server.process_request()
@@ -100,13 +100,13 @@ class ServerTest(unittest.TestCase):
 
     def test_if_shutdown_and_exit_shuts_down_all_services_and_shuts_server_down(self):
         dummy_service_id = 0x0
-        api.stop_server(self.handle, self.payload)
+        api.server_stop(self.handle, self.payload)
         with mock.patch('server.Server._Server__shutdown_all_services') as mock_shutdown_all_services:
             self.assertEqual(self.server.process_request(), False)
         mock_shutdown_all_services.assert_called_once_with(dummy_service_id, [self.payload])
 
     def test_if_send_service_request_sends_request(self):
-        api.request_service(self.handle, server.ServiceId.SOURCE_CODE_MODEL, self.payload)
+        api._server_request_service(self.handle, server.ServiceId.SOURCE_CODE_MODEL, self.payload)
         with mock.patch('server.Server.ServiceHandler.request') as mock_send_request:
             self.assertEqual(self.server.process_request(), True)
         mock_send_request.assert_called_once_with([self.payload])

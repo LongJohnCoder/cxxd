@@ -6,7 +6,7 @@ from services.source_code_model.indexer.clang_indexer import SourceCodeModelInde
 #
 # Server API
 #
-def start_server(get_server_instance, get_server_instance_args, log_file):
+def server_start(get_server_instance, get_server_instance_args, log_file):
     import logging
     import multiprocessing
     import sys
@@ -61,109 +61,115 @@ def start_server(get_server_instance, get_server_instance_args, log_file):
     server_process.start()
     return server_queue
 
-def stop_server(handle, *payload):
+def server_stop(handle, *payload):
     handle.put([ServerRequestId.SHUTDOWN_AND_EXIT, 0x0, list(payload)])
 
-def start_all_services(handle, *payload):
+def server_start_all_services(handle, *payload):
+    # TODO For this interface to be fully functional, server::_start_all_services
+    #      implementation has to be upgraded to support passing service-specific
+    #      payloads. I.e. to start all the services and initialize them appropriately,
+    #      user might provide a dictionary of the following form:
+    #          { service_id0: payload0, service_id1: payload1, ..., service_idN: payloadN }
     handle.put([ServerRequestId.START_ALL_SERVICES, 0x0, list(payload)])
 
-def stop_all_services(handle, *payload):
+def server_stop_all_services(handle, *payload):
     handle.put([ServerRequestId.SHUTDOWN_ALL_SERVICES, 0x0, list(payload)])
-
-def start_service(handle, id, *payload):
-    handle.put([ServerRequestId.START_SERVICE, id, list(payload)])
-
-def stop_service(handle, id, *payload):
-    handle.put([ServerRequestId.SHUTDOWN_SERVICE, id, list(payload)])
-
-def request_service(handle, id, *payload):
-    handle.put([ServerRequestId.SEND_SERVICE, id, list(payload)])
 
 #
 # Source code model API
 #
 def source_code_model_start(handle, project_root_directory, compiler_args):
-    start_service(handle, ServiceId.SOURCE_CODE_MODEL, project_root_directory, compiler_args)
+    _server_start_service(handle, ServiceId.SOURCE_CODE_MODEL, project_root_directory, compiler_args)
 
 def source_code_model_stop(handle, subscribe_for_callback):
-    stop_service(handle, ServiceId.SOURCE_CODE_MODEL, subscribe_for_callback)
+    _server_stop_service(handle, ServiceId.SOURCE_CODE_MODEL, subscribe_for_callback)
 
-def source_code_model_request(handle, source_code_model_service_id, *source_code_model_service_args):
-    request_service(handle, ServiceId.SOURCE_CODE_MODEL, source_code_model_service_id, *source_code_model_service_args)
+def source_code_model_semantic_syntax_highlight_request(handle, filename, contents):
+    _source_code_model_request(handle, SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT, filename, contents)
 
-#
-# Source code model services API
-#
-def indexer_request(handle, indexer_action_id, *args):
-    source_code_model_request(handle, SourceCodeModelSubServiceId.INDEXER, indexer_action_id, *args)
+def source_code_model_diagnostics_request(handle, filename, contents):
+    _source_code_model_request(handle, SourceCodeModelSubServiceId.DIAGNOSTICS, filename, contents)
 
-def semantic_syntax_highlight_request(handle, filename, contents):
-    source_code_model_request(handle, SourceCodeModelSubServiceId.SEMANTIC_SYNTAX_HIGHLIGHT, filename, contents)
+def source_code_model_type_deduction_request(handle, filename, contents, line, col):
+    _source_code_model_request(handle, SourceCodeModelSubServiceId.TYPE_DEDUCTION, filename, contents, line, col)
 
-def diagnostics_request(handle, filename, contents):
-    source_code_model_request(handle, SourceCodeModelSubServiceId.DIAGNOSTICS, filename, contents)
+def source_code_model_go_to_definition_request(handle, filename, contents, line, col):
+    _source_code_model_request(handle, SourceCodeModelSubServiceId.GO_TO_DEFINITION, filename, contents, line, col)
 
-def type_deduction_request(handle, filename, contents, line, col):
-    source_code_model_request(handle, SourceCodeModelSubServiceId.TYPE_DEDUCTION, filename, contents, line, col)
+def source_code_model_go_to_include_request(handle, filename, contents, line):
+    _source_code_model_request(handle, SourceCodeModelSubServiceId.GO_TO_INCLUDE, filename, contents, line)
 
-def go_to_definition_request(handle, filename, contents, line, col):
-    source_code_model_request(handle, SourceCodeModelSubServiceId.GO_TO_DEFINITION, filename, contents, line, col)
+def source_code_model_indexer_run_on_single_file_request(handle, filename, contents):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, filename, contents)
 
-def go_to_include_request(handle, filename, contents, line):
-    source_code_model_request(handle, SourceCodeModelSubServiceId.GO_TO_INCLUDE, filename, contents, line)
+def source_code_model_indexer_run_on_directory_request(handle):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY)
 
-def indexer_run_on_single_file_request(handle, filename, contents):
-    indexer_request(handle, SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, filename, contents)
+def source_code_model_indexer_drop_single_file_request(handle, filename):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, filename)
 
-def indexer_run_on_directory_request(handle):
-    indexer_request(handle, SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY)
+def source_code_model_indexer_drop_all_request(handle, remove_db_from_disk):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.DROP_ALL, remove_db_from_disk)
 
-def indexer_drop_single_file_request(handle, filename):
-    indexer_request(handle, SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, filename)
+def source_code_model_indexer_drop_all_and_run_on_directory_request(handle):
+    source_code_model_indexer_drop_all_request(handle, True)
+    source_code_model_indexer_run_on_directory_request(handle)
 
-def indexer_drop_all_request(handle, remove_db_from_disk):
-    indexer_request(handle, SourceCodeModelIndexerRequestId.DROP_ALL, remove_db_from_disk)
-
-def indexer_drop_all_and_run_on_directory_request(handle):
-    indexer_drop_all_request(handle, True)
-    indexer_run_on_directory_request(handle)
-
-def indexer_find_all_references_request(handle, filename, line, col):
-    indexer_request(handle, SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, filename, line, col)
+def source_code_model_indexer_find_all_references_request(handle, filename, line, col):
+    _indexer_request(handle, SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, filename, line, col)
 
 #
 # Project builder service API
 #
 def project_builder_start(handle, project_root_directory):
-    start_service(handle, ServiceId.PROJECT_BUILDER, project_root_directory)
+    _server_start_service(handle, ServiceId.PROJECT_BUILDER, project_root_directory)
 
 def project_builder_stop(handle, subscribe_for_callback):
-    stop_service(handle, ServiceId.PROJECT_BUILDER, subscribe_for_callback)
+    _server_stop_service(handle, ServiceId.PROJECT_BUILDER, subscribe_for_callback)
 
 def project_builder_request(handle, build_command):
-    request_service(handle, ServiceId.PROJECT_BUILDER, build_command)
+    _server_request_service(handle, ServiceId.PROJECT_BUILDER, build_command)
 
 #
 # Clang-format service API
 #
 def clang_format_start(handle, config_file):
-    start_service(handle, ServiceId.CLANG_FORMAT, config_file)
+    _server_start_service(handle, ServiceId.CLANG_FORMAT, config_file)
 
 def clang_format_stop(handle, subscribe_for_callback):
-    stop_service(handle, ServiceId.CLANG_FORMAT, subscribe_for_callback)
+    _server_stop_service(handle, ServiceId.CLANG_FORMAT, subscribe_for_callback)
 
 def clang_format_request(handle, filename):
-    request_service(handle, ServiceId.CLANG_FORMAT, filename)
+    _server_request_service(handle, ServiceId.CLANG_FORMAT, filename)
 
 #
 # Clang-tidy service API
 #
 def clang_tidy_start(handle, json_compilation_database):
-    start_service(handle, ServiceId.CLANG_TIDY, json_compilation_database)
+    _server_start_service(handle, ServiceId.CLANG_TIDY, json_compilation_database)
 
 def clang_tidy_stop(handle, subscribe_for_callback):
-    stop_service(handle, ServiceId.CLANG_TIDY, subscribe_for_callback)
+    _server_stop_service(handle, ServiceId.CLANG_TIDY, subscribe_for_callback)
 
 def clang_tidy_request(handle, filename, apply_fixes):
-    request_service(handle, ServiceId.CLANG_TIDY, filename, apply_fixes)
+    _server_request_service(handle, ServiceId.CLANG_TIDY, filename, apply_fixes)
+
+
+#
+# Helper functions.
+#
+def _server_start_service(handle, id, *payload):
+    handle.put([ServerRequestId.START_SERVICE, id, list(payload)])
+
+def _server_stop_service(handle, id, *payload):
+    handle.put([ServerRequestId.SHUTDOWN_SERVICE, id, list(payload)])
+
+def _server_request_service(handle, id, *payload):
+    handle.put([ServerRequestId.SEND_SERVICE, id, list(payload)])
+
+def _source_code_model_request(handle, source_code_model_service_id, *source_code_model_service_args):
+    _server_request_service(handle, ServiceId.SOURCE_CODE_MODEL, source_code_model_service_id, *source_code_model_service_args)
+
+def _indexer_request(handle, indexer_action_id, *args):
+    _source_code_model_request(handle, SourceCodeModelSubServiceId.INDEXER, indexer_action_id, *args)
 
