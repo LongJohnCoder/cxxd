@@ -47,6 +47,9 @@ class ClangIndexer(object):
             SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES : self.__find_all_references
         }
 
+    def symbol_db_exists(self):
+        return os.path.exists(self.symbol_db_path)
+
     def get_symbol_db(self):
         return self.symbol_db
 
@@ -58,34 +61,33 @@ class ClangIndexer(object):
         return False, None
 
     def __run_on_single_file(self, id, args):
-        original_filename = str(args[0])
-        contents_filename = str(args[1])
-
-        # We don't run indexer on files modified but not saved
-        success = True
-        if contents_filename == original_filename:
-            self.symbol_db.open(self.symbol_db_path)
-            self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, original_filename))
-            success = index_single_file(
-                self.parser,
-                self.root_directory,
-                contents_filename,
-                original_filename,
-                self.symbol_db
-            )
-            # TODO what if index_single_file() fails? shall we revert symbol_db.delete()?
+        success = False
+        if self.symbol_db_exists():
+            original_filename = str(args[0])
+            contents_filename = str(args[1])
+            if contents_filename == original_filename: # Files modified but not saved will _NOT_ get indexed
+                self.symbol_db.open(self.symbol_db_path)
+                self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, original_filename))
+                success = index_single_file(
+                    self.parser,
+                    self.root_directory,
+                    contents_filename,
+                    original_filename,
+                    self.symbol_db
+                )
+                # TODO what if index_single_file() fails? we should revert the symbol_db.delete() back
+            else:
+                logging.warning('Indexing will not take place on existing files whose contents were modified but not saved.')
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
         return success, None
 
     def __run_on_directory(self, id, args):
-        # Do not run indexer on whole directory if we already did it
-        directory_already_indexed = os.path.exists(self.symbol_db_path)
-
-        # We still need to establish the database connection even if we don't go into indexing
-        self.symbol_db.open(self.symbol_db_path)
-
-        # Otherwise, index the whole directory
-        if not directory_already_indexed:
+        if not self.symbol_db_exists():
             logging.info("Starting to index whole directory '{0}' ... ".format(self.root_directory))
+
+            # Establish the connection first and create an empty symbol database
+            self.symbol_db.open(self.symbol_db_path)
 
             # When creating the symbol db for the first time we need to create a data model for it
             self.symbol_db.create_data_model()
@@ -153,41 +155,54 @@ class ClangIndexer(object):
             logging.info("Indexing {0} is completed.".format(self.root_directory))
         else:
             logging.info("Directory '{0}' already indexed ... ".format(self.root_directory))
-
         return True, None
 
     def __drop_single_file(self, id, args):
-        filename = str(args[0])
-        self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, filename))
-        return True, None
+        symbol_db_exists = self.symbol_db_exists()
+        if symbol_db_exists:
+            filename = str(args[0])
+            self.symbol_db.open(self.symbol_db_path)
+            self.symbol_db.delete(remove_root_dir_from_filename(self.root_directory, filename))
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
+        return symbol_db_exists, None
 
     def __drop_all(self, id, args):
-        delete_file_from_disk = bool(args[0])
-        self.symbol_db.delete_all()
-        if delete_file_from_disk:
-            self.symbol_db.close()
-            os.remove(self.symbol_db.filename)
-        logging.info('Indexer DB dropped.')
-        return True, None
+        symbol_db_exists = self.symbol_db_exists()
+        if symbol_db_exists:
+            self.symbol_db.open(self.symbol_db_path)
+            self.symbol_db.delete_all()
+            delete_file_from_disk = bool(args[0])
+            if delete_file_from_disk:
+                self.symbol_db.close()
+                os.remove(self.symbol_db.filename)
+            logging.info('Indexer DB dropped.')
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
+        return symbol_db_exists, None
 
     def __find_all_references(self, id, args):
-        start = time.clock()
-        references = []
-        tunit = self.parser.parse(str(args[0]), str(args[0]))
-        cursor = self.parser.get_cursor(tunit, int(args[1]), int(args[2]))
-        if cursor:
-            # TODO In order to make find-all-references work on edited (and not yet saved) files,
-            #      we would need to manipulate directly with USR.
-            #      In case of edited files, USR contains a name of a temporary file we serialized
-            #      the contents in and therefore will not match the USR in the database (which in
-            #      contrast contains an original filename).
-            usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
-            for ref in self.symbol_db.get_by_id(usr).fetchall():
-                references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
-            logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(
-                cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start)
-            )
-        logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
+        tunit, cursor, references = None, None, []
+        if self.symbol_db_exists():
+            start = time.clock()
+            tunit = self.parser.parse(str(args[0]), str(args[0]))
+            cursor = self.parser.get_cursor(tunit, int(args[1]), int(args[2]))
+            if cursor:
+                # TODO In order to make find-all-references work on edited (and not yet saved) files,
+                #      we would need to manipulate directly with USR.
+                #      In case of edited files, USR contains a name of a temporary file we serialized
+                #      the contents in and therefore will not match the USR in the database (which in
+                #      contrast contains an original filename).
+                usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
+                self.symbol_db.open(self.symbol_db_path)
+                for ref in self.symbol_db.get_by_id(usr).fetchall():
+                    references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
+                logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(
+                    cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start)
+                )
+            logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
+        else:
+            logging.error('Action cannot be run if symbol database does not exist yet!')
         return tunit is not None and cursor is not None, references
 
 def index_file_list(root_directory, input_filename_list, compiler_args_filename, output_db_filename):

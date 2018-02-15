@@ -62,24 +62,34 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, False)
         self.assertEqual(args, None)
 
-    def test_if_run_on_single_file_skips_indexing_when_file_is_edited(self):
-        with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
-            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file_edited.name])
+    def test_if_run_on_single_file_skips_indexing_if_symbol_db_is_inexisting(self):
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
+            with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
+                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file_edited.name])
         mock_index_single_file.assert_not_called()
-        self.assertEqual(success, True)
+        self.assertEqual(success, False)
+        self.assertEqual(args, None)
+
+    def test_if_run_on_single_file_skips_indexing_when_file_is_edited(self):
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file') as mock_index_single_file:
+                success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file_edited.name])
+        mock_index_single_file.assert_not_called()
+        self.assertEqual(success, False)
         self.assertEqual(args, None)
 
     def test_if_run_on_single_file_deletes_an_entry_from_symbol_db_using_its_basename_and_then_successfully_indexes_the_file(self):
         manager = mock.MagicMock()
-        with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-            with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
-                with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
-                    with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=True) as mock_index_single_file:
-                        manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
-                        manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
-                        manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
-                        manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
-                        success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                        with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=True) as mock_index_single_file:
+                            manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
+                            manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
+                            manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
+                            manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
+                            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
         manager.assert_has_calls(
             [
                 mock.call.mock_symbol_db_open(self.service.symbol_db_path),
@@ -93,38 +103,39 @@ class ClangIndexerTest(unittest.TestCase):
 
     def test_if_run_on_single_file_deletes_an_entry_from_symbol_db_using_its_basename_and_then_failes_to_index_the_file(self):
         manager = mock.MagicMock()
-        with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-            with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
-                with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
-                    with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=False) as mock_index_single_file:
-                        manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
-                        manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
-                        manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
-                        manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
-                        success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
-        manager.assert_has_calls(
-            [
-                mock.call.mock_symbol_db_open(self.service.symbol_db_path),
-                mock.call.mock_remove_root_dir_from_filename(self.root_directory, self.test_file.name),
-                mock.call.mock_symbol_db_delete_entry(mock_remove_root_dir_from_filename.return_value),
-                mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.test_file.name, self.service.symbol_db)
-            ]
-        )
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete_entry:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                        with mock.patch('services.source_code_model.indexer.clang_indexer.index_single_file', return_value=False) as mock_index_single_file:
+                            manager.attach_mock(mock_symbol_db_open, 'mock_symbol_db_open')
+                            manager.attach_mock(mock_symbol_db_delete_entry, 'mock_symbol_db_delete_entry')
+                            manager.attach_mock(mock_remove_root_dir_from_filename, 'mock_remove_root_dir_from_filename')
+                            manager.attach_mock(mock_index_single_file, 'mock_index_single_file')
+                            success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_SINGLE_FILE, self.test_file.name, self.test_file.name])
+            manager.assert_has_calls(
+                [
+                    mock.call.mock_symbol_db_open(self.service.symbol_db_path),
+                    mock.call.mock_remove_root_dir_from_filename(self.root_directory, self.test_file.name),
+                    mock.call.mock_symbol_db_delete_entry(mock_remove_root_dir_from_filename.return_value),
+                    mock.call.mock_index_single_file(self.service.parser, self.service.root_directory, self.test_file.name, self.test_file.name, self.service.symbol_db)
+                ]
+            )
         self.assertEqual(success, False)
         self.assertEqual(args, None)
 
     def test_if_run_on_directory_skips_indexing_if_symbol_db_already_exists_in_root_directory(self):
-        with mock.patch('os.path.exists', return_value=True) as mock_os_path_exists:
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
                 with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
                     success, args = self.service([SourceCodeModelIndexerRequestId.RUN_ON_DIRECTORY])
-        mock_symbol_db_open.assert_called_once_with(self.service.symbol_db_path)
+        mock_symbol_db_open.assert_not_called()
         mock_symbol_db_create_data_model.assert_not_called()
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
     def test_if_run_on_directory_handles_when_there_are_no_files_existing_in_root_directory(self):
-        with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
                 with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.get_cpp_file_list', return_value=[]) as mock_get_cpp_file_list:
@@ -141,7 +152,7 @@ class ClangIndexerTest(unittest.TestCase):
         dummy_cmd = 'cd'
         cpp_file_list = ['/tmp/a.cpp', '/tmp/b.cpp', '/tmp/c.cpp', '/tmp/d.cpp', '/tmp/e.cpp', '/tmp/f.cpp', '/tmp/g.cpp']
         cpp_file_list_chunks = [[cpp_file_list[0], cpp_file_list[1]], [cpp_file_list[2], cpp_file_list[3]], [cpp_file_list[4], cpp_file_list[5]], [cpp_file_list[6], None]]
-        with mock.patch('os.path.exists', return_value=False) as mock_os_path_exists:
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
             with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
                 with mock.patch.object(self.service.symbol_db, 'create_data_model') as mock_symbol_db_create_data_model:
                     with mock.patch('services.source_code_model.indexer.clang_indexer.get_cpp_file_list', return_value=cpp_file_list) as mock_get_cpp_file_list:
@@ -169,21 +180,50 @@ class ClangIndexerTest(unittest.TestCase):
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
+    def test_if_drop_single_file_skips_deleting_an_entry_if_symbol_db_is_inexisting(self):
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                        success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
+        mock_symbol_db_open.assert_not_called()
+        mock_symbol_db_delete.assert_not_called()
+        mock_remove_root_dir_from_filename.assert_not_called()
+        self.assertEqual(success, False)
+        self.assertEqual(args, None)
+
     def test_if_drop_single_file_deletes_an_entry_from_symbol_db(self):
-        with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
-            with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
-                success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete') as mock_symbol_db_delete:
+                    with mock.patch('services.source_code_model.indexer.clang_indexer.remove_root_dir_from_filename', return_value=os.path.basename(self.test_file.name)) as mock_remove_root_dir_from_filename:
+                        success, args = self.service([SourceCodeModelIndexerRequestId.DROP_SINGLE_FILE, self.test_file.name])
+        mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
         mock_symbol_db_delete.assert_called_once_with(mock_remove_root_dir_from_filename.return_value)
         mock_remove_root_dir_from_filename.assert_called_once_with(self.root_directory, self.test_file.name)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
+    def test_if_drop_all_skips_deleting_all_entries_if_symbol_db_is_inexisting(self):
+        delete_from_disk = False
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+                    success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
+        mock_symbol_db_open.assert_not_called()
+        mock_symbol_db_delete_all.assert_not_called()
+        self.assertEqual(success, False)
+        self.assertEqual(args, None)
+
     def test_if_drop_all_deletes_all_entries_from_symbol_db_but_does_not_delete_the_db_from_disk(self):
         delete_from_disk = False
-        with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
-            with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
-                with mock.patch('os.remove') as mock_os_remove:
-                    success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+                    with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
+                        with mock.patch('os.remove') as mock_os_remove:
+                            success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
+        mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
         mock_symbol_db_delete_all.assert_called_once()
         mock_symbol_db_close.assert_not_called()
         mock_os_remove.assert_not_called()
@@ -192,29 +232,45 @@ class ClangIndexerTest(unittest.TestCase):
 
     def test_if_drop_all_deletes_all_entries_from_symbol_db_and_deletes_the_db_from_disk(self):
         delete_from_disk = True
-        with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
-            with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
-                with mock.patch('os.remove') as mock_os_remove:
-                    success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                with mock.patch.object(self.service.symbol_db, 'delete_all') as mock_symbol_db_delete_all:
+                    with mock.patch.object(self.service.symbol_db, 'close') as mock_symbol_db_close:
+                        with mock.patch('os.remove') as mock_os_remove:
+                            success, args = self.service([SourceCodeModelIndexerRequestId.DROP_ALL, delete_from_disk])
+        mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
         mock_symbol_db_delete_all.assert_called_once()
         mock_symbol_db_close.assert_called_once()
         mock_os_remove.assert_called_once_with(self.service.symbol_db.filename)
         self.assertEqual(success, True)
         self.assertEqual(args, None)
 
+    def test_if_find_all_references_returns_false_and_empty_references_list_on_inexisting_symbol_db(self):
+        line, column = 1, 1
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=False):
+            with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+                with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+        mock_parser_parse.assert_not_called()
+        mock_parser_get_cursor.assert_not_called()
+        self.assertEqual(success, False)
+        self.assertEqual(len(references), 0)
+
     def test_if_find_all_references_returns_false_and_empty_references_list_for_invalid_translation_unit(self):
         line, column = 1, 1
-        with mock.patch.object(self.service.parser, 'parse', return_value=None) as mock_parser_parse:
-            success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.parser, 'parse', return_value=None) as mock_parser_parse:
+                success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         self.assertEqual(success, False)
         self.assertEqual(len(references), 0)
 
     def test_if_find_all_references_returns_false_and_empty_references_list_for_invalid_cursor(self):
         line, column = 1, 1
-        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
-            with mock.patch.object(self.service.parser, 'get_cursor', return_value=None) as mock_parser_get_cursor:
-                success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+                with mock.patch.object(self.service.parser, 'get_cursor', return_value=None) as mock_parser_get_cursor:
+                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
         self.assertEqual(success, False)
@@ -224,12 +280,15 @@ class ClangIndexerTest(unittest.TestCase):
         line, column = 1, 1
         cursor = mock.MagicMock(sqlite3.Cursor)
         cursor.fetchall.return_value = []
-        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
-            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
-                with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
-                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+                with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                    with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                            success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
+        mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
         mock_symbol_db_get_by_id.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(len(references), 0)
@@ -238,12 +297,15 @@ class ClangIndexerTest(unittest.TestCase):
         line, column = 1, 1
         cursor = mock.MagicMock(sqlite3.Cursor)
         cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
-        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
-            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
-                with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
-                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+                with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                    with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                            success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
+        mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
         mock_symbol_db_get_by_id.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
@@ -252,12 +314,15 @@ class ClangIndexerTest(unittest.TestCase):
         line, column = 1, 1
         cursor = mock.MagicMock(sqlite3.Cursor)
         cursor.fetchall.return_value = [['main.cpp', '22', '5', 'main.cpp#l22#c5#foobar', '    void foobar() {']]
-        with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
-            with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
-                with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
-                    success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
+        with mock.patch.object(self.service, 'symbol_db_exists', return_value=True):
+            with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
+                with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
+                    with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                            success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
+        mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
         mock_symbol_db_get_by_id.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
