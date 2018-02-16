@@ -29,8 +29,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    FORMAT = '[%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'
-    logging.basicConfig(filename=args.log_file, filemode='w', format=FORMAT, level=logging.INFO)
+    FORMAT = '[%(asctime)s.%(msecs)03d] [%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'
+    logging.basicConfig(filename=args.log_file, filemode='w', format=FORMAT, datefmt='%H:%M:%S', level=logging.INFO)
  
     import clang_indexer
     clang_indexer.index_file_list(

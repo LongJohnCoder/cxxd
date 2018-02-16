@@ -32,8 +32,8 @@ def server_start(get_server_instance, get_server_instance_args, log_file):
             service_listener = listen
 
         # Logger setup
-        FORMAT = '[%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'
-        logging.basicConfig(filename=log_file, filemode='w', format=FORMAT, level=logging.INFO)
+        FORMAT = '[%(asctime)s.%(msecs)03d] [%(levelname)s] [%(filename)s:%(lineno)s] %(funcName)25s(): %(message)s'
+        logging.basicConfig(filename=log_file, filemode='w', format=FORMAT, datefmt='%H:%M:%S', level=logging.INFO)
         logging.info('Starting a server ...')
 
         # Setup catching unhandled exceptions
