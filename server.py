@@ -1,5 +1,5 @@
 import logging
-from multiprocessing import Process, Queue
+from multiprocessing import Process
 from services.clang_format_service import ClangFormat
 from services.clang_tidy_service import ClangTidy
 from services.project_builder_service import ProjectBuilder
@@ -162,74 +162,4 @@ def server_listener(server):
     while keep_listening:
         keep_listening = server.process_request()
     logging.info("Server listener shut down ...")
-
-
-
-
-
-def test__clang_indexer__run_on_directory():
-    proj_root_dir = "/home/jbakamovic/development/projects/cppcheck"
-    compiler_args = "-I./lib -I./externals/simplecpp -I./tinyxml"
-    filename = "/home/jbakamovic/development/projects/cppcheck/lib/astutils.cpp"
-
-    q = Queue()
-    q.put([0xF1, 0, "dummy"])
-    q.put([0xF2, 0, [0x0, 0x1, proj_root_dir, compiler_args]])   # run-on-directory
-    server_run(q, 'GVIM')
-
-def test__clang_indexer__find_all_references():
-    proj_root_dir = "/home/jbakamovic/development/projects/cppcheck"
-    compiler_args = "-I./lib -I./externals/simplecpp -I./tinyxml"
-    filename = "/home/jbakamovic/development/projects/cppcheck/lib/astutils.cpp"
-    line = 27
-    col = 15
-
-    q = Queue()
-    q.put([0xF1, 0, "dummy"])
-    q.put([0xF2, 0, [0x0, 0x1, proj_root_dir, compiler_args]])   # run-on-directory
-    q.put([0xF2, 0, [0x0, 0x11, filename, line, col]])           # find-all-references
-    server_run(q, 'GVIM')
-
-def test__clang_syntax_highlighter():
-    proj_root_dir = "/home/jbakamovic/development/projects/cppcheck"
-    compiler_args = "-I./lib -I./externals/simplecpp -I./tinyxml"
-    filename = "/home/jbakamovic/development/projects/cppcheck/lib/astutils.cpp"
-
-    q = Queue()
-    q.put([0xF1, 0, "dummy"])
-    q.put([0xF2, 0, [0x1, proj_root_dir, filename, filename, compiler_args]]) # syntax-highlight
-    server_run(q, 'GVIM')
-
-def test__clang_diagnostics():
-    proj_root_dir = "/home/jbakamovic/development/projects/cppcheck"
-    compiler_args = "-I./lib -I./externals/simplecpp -I./tinyxml"
-    filename = "/home/jbakamovic/development/projects/cppcheck/lib/astutils.cpp"
-
-    q = Queue()
-    q.put([0xF1, 0, "dummy"])
-    q.put([0xF2, 0, [0x2, proj_root_dir, filename, filename, compiler_args]]) # diagnostics
-    server_run(q, 'GVIM')
-
-def test__clang_type_deduction():
-    proj_root_dir = "/home/jbakamovic/development/projects/cppcheck"
-    compiler_args = "-I./lib -I./externals/simplecpp -I./tinyxml"
-    filename = "/home/jbakamovic/development/projects/cppcheck/lib/astutils.cpp"
-    line = 27
-    col = 15
-
-    q = Queue()
-    q.put([0xF1, 0, "dummy"])
-    q.put([0xF2, 0, [0x3, proj_root_dir, filename, filename, compiler_args, line, col]]) # type-deduction
-    server_run(q, 'GVIM')
-
-
-def main():
-    return test__clang_indexer__find_all_references()
-    return test__clang_indexer__run_on_directory()
-    return test__clang_type_deduction()
-    return test__clang_diagnostics()
-    return test__clang_syntax_highlighter()
-
-if __name__ == "__main__":
-    main()
 
