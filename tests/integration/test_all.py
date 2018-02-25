@@ -32,6 +32,12 @@ def gen_compile_commands_json(project_root_directory):
     cmd = 'cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
     return subprocess.call(shlex.split(cmd), cwd=project_root_directory)
 
+# .clang-format is what we have to have in order to run clang-format related integration tests
+def gen_clang_format_configuration(project_root_directory):
+    import shlex, subprocess
+    cmd = 'clang-format -style=llvm -dump-config > .clang-format'
+    return subprocess.call(shlex.split(cmd), cwd=project_root_directory)
+
 class CxxdIntegrationTest(unittest.TestCase):
     DROP_SYMBOL_DB = True
 
@@ -40,11 +46,14 @@ class CxxdIntegrationTest(unittest.TestCase):
         # Setup some paths
         cls.proj_root_dir = ext_dep['chaiscript']['path']
         cls.compiler_args = cls.proj_root_dir + os.sep + 'compile_commands.json'
-        cls.clang_format_config = cls.proj_root_dir + os.sep + 'clang-format'
+        cls.clang_format_config = cls.proj_root_dir + os.sep + '.clang-format'
         cls.log_file = current_dir + os.sep + 'cxxd.log'
 
         # Generate compile_commands.json
         gen_compile_commands_json(cls.proj_root_dir)
+
+        # Generate .clang-format
+        gen_clang_format_configuration(cls.proj_root_dir)
 
         # Define where to store callback results from various requests we will trigger during the tests
         cls.source_code_model_cb_result = cxxd_callbacks.SourceCodeModelCallbackResult()
@@ -171,6 +180,12 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.clang_tidy_cb_result.wait_until_available()
         self.assertTrue(self.clang_tidy_cb_result.status)
         self.assertNotEqual(self.clang_tidy_cb_result.output, '')
+
+    def test_clang_format_request(self):
+        fut = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'chaiscript_stdlib_module.cpp'
+        cxxd.api.clang_format_request(self.handle, fut)
+        self.clang_format_cb_result.wait_until_available()
+        self.assertTrue(self.clang_format_cb_result.status)
 
 if __name__ == "__main__":
     import argparse, sys
