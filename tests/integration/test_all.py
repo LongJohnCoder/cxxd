@@ -17,13 +17,13 @@ ext_dep = {
 
 # We have to provide a factory method to instantiate the server the way we want ...
 def get_server_instance(handle, args):
-    source_code_model_cb_result = args
+    source_code_model_cb_result, clang_format_cb_result, clang_tidy_cb_result, project_builder_cb_result  = args
     return cxxd.server.Server(
         handle,
         cxxd_plugins.SourceCodeModelServicePluginMock(source_code_model_cb_result),
-        cxxd_plugins.ClangFormatServicePluginMock(),
-        cxxd_plugins.ClangTidyServicePluginMock(),
-        cxxd_plugins.ProjectBuilderServicePluginMock()
+        cxxd_plugins.ProjectBuilderServicePluginMock(project_builder_cb_result),
+        cxxd_plugins.ClangFormatServicePluginMock(clang_format_cb_result),
+        cxxd_plugins.ClangTidyServicePluginMock(clang_tidy_cb_result)
     )
 
 # compile_commands.json is what we have to have in order to run the integration tests
@@ -48,9 +48,23 @@ class CxxdIntegrationTest(unittest.TestCase):
 
         # Define where to store callback results from various requests we will trigger during the tests
         cls.source_code_model_cb_result = cxxd_callbacks.SourceCodeModelCallbackResult()
+        cls.clang_format_cb_result = cxxd_callbacks.ClangFormatCallbackResult()
+        cls.clang_tidy_cb_result = cxxd_callbacks.ClangTidyCallbackResult()
+        cls.project_builder_cb_result = cxxd_callbacks.ProjectBuilderCallbackResult()
 
-        # Trigger the cxxd server ...
-        cls.handle = cxxd.api.server_start(get_server_instance, cls.source_code_model_cb_result, cls.log_file)
+        # Start the cxxd server ...
+        cls.handle = cxxd.api.server_start(
+            get_server_instance,
+            (
+                cls.source_code_model_cb_result,
+                cls.clang_format_cb_result,
+                cls.clang_tidy_cb_result,
+                cls.project_builder_cb_result,
+            ),
+            cls.log_file
+        )
+
+        # And services that we want to test ...
         cxxd.api.source_code_model_start(cls.handle, cls.proj_root_dir, cls.compiler_args)
         cxxd.api.project_builder_start(cls.handle, cls.proj_root_dir)
         cxxd.api.clang_format_start(cls.handle, cls.clang_format_config)
@@ -72,6 +86,9 @@ class CxxdIntegrationTest(unittest.TestCase):
 
     def setUp(self):
         self.source_code_model_cb_result.reset()
+        self.clang_format_cb_result.reset()
+        self.clang_tidy_cb_result.reset()
+        self.project_builder_cb_result.reset()
 
     def tearDown(self):
         pass
