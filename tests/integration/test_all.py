@@ -187,6 +187,13 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.clang_format_cb_result.wait_until_available()
         self.assertTrue(self.clang_format_cb_result.status)
 
+    def test_project_builder_request(self):
+        fake_build_command = 'cmake --system-information'
+        cxxd.api.project_builder_request(self.handle, fake_build_command)
+        self.project_builder_cb_result.wait_until_available()
+        self.assertTrue(self.project_builder_cb_result.status)
+        self.assertNotEqual(self.project_builder_cb_result.output, '')
+
 if __name__ == "__main__":
     import argparse, sys
     parser = argparse.ArgumentParser()
