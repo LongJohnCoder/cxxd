@@ -38,6 +38,12 @@ def gen_clang_format_configuration(project_root_directory):
     cmd = 'clang-format -style=llvm -dump-config > .clang-format'
     return subprocess.call(shlex.split(cmd), cwd=project_root_directory)
 
+# In case we need to revert the change caused by some test (i.e. clang-format)
+def revert_the_file_content_change(root_dir, filename):
+    import shlex, subprocess
+    cmd = 'git checkout -- ' + filename
+    return subprocess.call(shlex.split(cmd), cwd=root_dir)
+
 class CxxdIntegrationTest(unittest.TestCase):
     DROP_SYMBOL_DB = True
 
@@ -182,10 +188,13 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.assertNotEqual(self.clang_tidy_cb_result.output, '')
 
     def test_clang_format_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'chaiscript_stdlib_module.cpp'
+        root_dir = ext_dep['chaiscript']['path']
+        filename = 'src' + os.sep + 'chaiscript_stdlib_module.cpp'
+        fut      = root_dir + os.sep + filename
         cxxd.api.clang_format_request(self.handle, fut)
         self.clang_format_cb_result.wait_until_available()
         self.assertTrue(self.clang_format_cb_result.status)
+        revert_the_file_content_change(root_dir, filename)
 
     def test_project_builder_request(self):
         fake_build_command = 'cmake --system-information'
