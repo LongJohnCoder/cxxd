@@ -3,7 +3,6 @@ import unittest
 
 import cxxd.api
 import cxxd.server
-import cxxd.tests.cxxd_mocks
 import cxxd.tests.integration.cxxd_callbacks as cxxd_callbacks
 import cxxd.tests.integration.cxxd_plugins as cxxd_plugins
 
