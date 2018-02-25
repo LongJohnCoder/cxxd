@@ -165,6 +165,13 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['diagnostics'].status)
 
+    def test_clang_tidy_request(self):
+        fut = ext_dep['chaiscript']['path'] + os.sep + 'src' + os.sep + 'chaiscript_stdlib_module.cpp'
+        cxxd.api.clang_tidy_request(self.handle, fut, apply_fixes=False)
+        self.clang_tidy_cb_result.wait_until_available()
+        self.assertTrue(self.clang_tidy_cb_result.status)
+        self.assertNotEqual(self.clang_tidy_cb_result.output, '')
+
 if __name__ == "__main__":
     import argparse, sys
     parser = argparse.ArgumentParser()
