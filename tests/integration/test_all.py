@@ -50,6 +50,7 @@ class CxxdIntegrationTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setup some paths
+        cls.fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript_stdlib.hpp'
         cls.proj_root_dir = ext_dep['chaiscript']['path']
         cls.compiler_args = cls.proj_root_dir + os.sep + 'compile_commands.json'
         cls.clang_format_config = cls.proj_root_dir + os.sep + '.clang-format'
@@ -108,35 +109,29 @@ class CxxdIntegrationTest(unittest.TestCase):
     def tearDown(self):
         pass
 
-    # TODO replace chaiscript.hpp with something lighter (parsing takes quite long so it increases an integration test time unneedlesly)
-
     def test_source_code_model_indexer_run_on_directory(self):
         cxxd.api.source_code_model_indexer_run_on_directory_request(self.handle)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['indexer'].status)
 
     def test_source_code_model_indexer_drop_single_file(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_indexer_drop_single_file_request(self.handle, fut)
+        cxxd.api.source_code_model_indexer_drop_single_file_request(self.handle, self.fut)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['indexer'].status)
 
     def test_source_code_model_indexer_run_on_single_file(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_indexer_run_on_single_file_request(self.handle, fut, fut)
+        cxxd.api.source_code_model_indexer_run_on_single_file_request(self.handle, self.fut, self.fut)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['indexer'].status)
 
     def test_source_code_model_indexer_find_all_references_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_indexer_find_all_references_request(self.handle, fut, 830, 9)
+        cxxd.api.source_code_model_indexer_find_all_references_request(self.handle, self.fut, 56, 76)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['indexer'].status)
         self.assertNotEqual(self.source_code_model_cb_result['indexer'].num_of_references, 0)
 
     def test_source_code_model_go_to_definition_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_go_to_definition_request(self.handle, fut, fut, 830, 29)
+        cxxd.api.source_code_model_go_to_definition_request(self.handle, self.fut, self.fut, 52, 73)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['go_to_definition'].status)
         self.assertNotEqual(self.source_code_model_cb_result['go_to_definition'].filename, '')
@@ -153,30 +148,26 @@ class CxxdIntegrationTest(unittest.TestCase):
         self.assertNotEqual(self.source_code_model_cb_result['go_to_definition'].column, 0)
 
     def test_source_code_model_go_to_include_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_go_to_include_request(self.handle, fut, fut, 824)
+        cxxd.api.source_code_model_go_to_include_request(self.handle, self.fut, self.fut, 17)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['go_to_include'].status)
         self.assertNotEqual(self.source_code_model_cb_result['go_to_include'].filename, '')
 
     def test_source_code_model_type_deduction_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_type_deduction_request(self.handle, fut, fut, 838, 67)
+        cxxd.api.source_code_model_type_deduction_request(self.handle, self.fut, self.fut, 57, 71)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['type_deduction'].status)
         self.assertNotEqual(self.source_code_model_cb_result['type_deduction'].spelling, '')
 
     def test_source_code_model_semantic_syntax_highlight_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_semantic_syntax_highlight_request(self.handle, fut, fut)
+        cxxd.api.source_code_model_semantic_syntax_highlight_request(self.handle, self.fut, self.fut)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['semantic_syntax_hl'].status)
         self.assertNotEqual(self.source_code_model_cb_result['semantic_syntax_hl'].tunit_spelling, '')
         self.assertNotEqual(self.source_code_model_cb_result['semantic_syntax_hl'].num_of_ast_nodes, 0)
 
     def test_source_code_model_diagnostics_request(self):
-        fut = ext_dep['chaiscript']['path'] + os.sep + 'include' + os.sep + 'chaiscript' + os.sep + 'chaiscript.hpp'
-        cxxd.api.source_code_model_diagnostics_request(self.handle, fut, fut)
+        cxxd.api.source_code_model_diagnostics_request(self.handle, self.fut, self.fut)
         self.source_code_model_cb_result.wait_until_available()
         self.assertTrue(self.source_code_model_cb_result['diagnostics'].status)
 
