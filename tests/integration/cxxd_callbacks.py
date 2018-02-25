@@ -204,6 +204,79 @@ class SourceCodeModelCallbackResult():
     def __getitem__(self, key):
         return self.type.get(key, None)
 
-# TODO implement similar callback handling classes for the rest of services (clang-tidy, clang-format, project-builder)
+class ClangFormatCallbackResult():
+    def __init__(self):
+        self.wait_on_completion = multiprocessing.Semaphore(0)
+        self.clang_format_status = multiprocessing.Value(ctypes.c_bool, False)
+
+    def wait_until_available(self):
+        self.wait_on_completion.acquire()
+
+    def set(self, success, args):
+        self.clang_format_status.value = success
+        self.wait_on_completion.release()
+
+    def reset(self):
+        self.clang_format_status.value = False
+
+    @property
+    def status(self):
+        return self.clang_format_status.value
+
+class ClangTidyCallbackResult():
+    OUTPUT_FILENAME_LENGTH_MAX = 150
+
+    def __init__(self):
+        self.wait_on_completion = multiprocessing.Semaphore(0)
+        self.clang_tidy_status = multiprocessing.Value(ctypes.c_bool, False)
+        self.clang_tidy_output = multiprocessing.Array(ctypes.c_char, ClangTidyCallbackResult.OUTPUT_FILENAME_LENGTH_MAX)
+
+    def wait_until_available(self):
+        self.wait_on_completion.acquire()
+
+    def set(self, success, args):
+        self.clang_tidy_status.value = success
+        self.clang_tidy_output.value = args[0:ClangTidyCallbackResult.OUTPUT_FILENAME_LENGTH_MAX]
+        self.wait_on_completion.release()
+
+    def reset(self):
+        self.clang_tidy_status.value = False
+        self.clang_tidy_output.value = ''
+
+    @property
+    def status(self):
+        return self.clang_tidy_status.value
+
+    @property
+    def output(self):
+        return self.clang_tidy_output.value
+
+class ProjectBuilderCallbackResult():
+    OUTPUT_FILENAME_LENGTH_MAX = 150
+
+    def __init__(self):
+        self.wait_on_completion = multiprocessing.Semaphore(0)
+        self.project_builder_status = multiprocessing.Value(ctypes.c_bool, False)
+        self.project_builder_output = multiprocessing.Array(ctypes.c_char, ProjectBuilderCallbackResult.OUTPUT_FILENAME_LENGTH_MAX)
+
+    def wait_until_available(self):
+        self.wait_on_completion.acquire()
+
+    def set(self, success, args):
+        self.project_builder_status.value = success
+        self.project_builder_output.value = args[0][0:ProjectBuilderCallbackResult.OUTPUT_FILENAME_LENGTH_MAX]
+        self.wait_on_completion.release()
+
+    def reset(self):
+        self.project_builder_status.value = False
+        self.project_builder_output.value = ''
+
+    @property
+    def status(self):
+        return self.project_builder_status.value
+
+    @property
+    def output(self):
+        return self.project_builder_output.value
 
 
