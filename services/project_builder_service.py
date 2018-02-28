@@ -29,8 +29,8 @@ class ProjectBuilder(cxxd.service.Service):
             start = time.clock()
             self.build_cmd_output_file.truncate()
             cmd = "cd " + self.build_cmd_dir + " && " + build_cmd
-            ret = subprocess.call(cmd, shell=True, stdout=self.build_cmd_output_file, stderr=self.build_cmd_output_file)
+            build_exit_code = subprocess.call(cmd, shell=True, stdout=self.build_cmd_output_file, stderr=self.build_cmd_output_file)
             end = time.clock()
-            logging.info("Cmd '{0}' took {1}".format(cmd, end-start))
-            return ret == 0, [self.build_cmd_output_file.name, end-start]
+            logging.info("Cmd '{0}' took {1}. Status = {2}".format(cmd, end-start, build_exit_code))
+            return True, [self.build_cmd_output_file.name, build_exit_code, end-start]
         return False, None

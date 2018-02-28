@@ -43,8 +43,9 @@ class ProjectBuilderTest(unittest.TestCase):
         success, args = self.service([self.build_cmd])
         self.assertEqual(success, True)
         self.assertNotEqual(args, None)
-        build_output, duration = args
+        build_output, exit_code, duration = args
         self.assertNotEqual(build_output, '')
+        self.assertEqual(exit_code, 0)
         self.assertNotEqual(duration, -1)
 
     def test_if_call_returns_false_for_success_and_none_build_output_when_run_on_inexisting_directory(self):
