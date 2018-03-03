@@ -29,6 +29,27 @@ class SymbolDatabase(object):
     def is_open(self):
         return self.db_connection is not None
 
+    def get_filename(self, row):
+        return row[0].encode('utf8', 'ignore')
+
+    def get_line(self, row):
+        return row[1]
+
+    def get_column(self, row):
+        return row[2]
+
+    def get_usr(self, row):
+        return row[3].encode('utf8', 'ignore')
+
+    def get_context(self, row):
+        return row[4].encode('utf8', 'ignore')
+
+    def get_kind(self, row):
+        return row[5]
+
+    def get_is_definition(self, row):
+        return row[6]
+
     def get_all(self):
         # TODO Use generators
         return self.db_connection.cursor().execute('SELECT * FROM symbol')
@@ -68,7 +89,15 @@ class SymbolDatabase(object):
             rows = symbol_db.get_all()
             if rows:
                 for row in rows:
-                    self.insert_single(row[0], row[1], row[2], row[3], row[4], row[5], row[6])
+                    self.insert_single(
+                        symbol_db.get_filename(row),
+                        symbol_db.get_line(row),
+                        symbol_db.get_column(row),
+                        symbol_db.get_usr(row),
+                        symbol_db.get_context(row),
+                        symbol_db.get_kind(row),
+                        symbol_db.get_is_definition(row)
+                    )
                 self.flush()
             symbol_db.close()
 
