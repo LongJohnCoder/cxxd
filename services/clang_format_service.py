@@ -13,6 +13,7 @@ class ClangFormat(cxxd.service.Service):
         self.clang_format_success_code = 0
 
     def startup_callback(self, args):
+        # TODO add support for range-based formatting (-offset, -length)
         if self.clang_format_binary:
             config_file = args[0]
             if os.path.isfile(config_file):
@@ -20,6 +21,7 @@ class ClangFormat(cxxd.service.Service):
                 logging.info("Config_file = {0}".format(config_file))
             else:
                 logging.error('Provided clang-format configuration file , \'{0}\', does not exist. Please check if correct path is given.'.format(config_file))
+            logging.info('clang-format version: \'{0}\''.format(subprocess.check_output([self.clang_format_binary, '-version'])))
         else:
             logging.error('clang-format executable not found on your system path!')
 

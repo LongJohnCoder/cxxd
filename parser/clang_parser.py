@@ -62,6 +62,7 @@ class ClangParser():
         self.index         = clang.cindex.Index.create()
         self.compiler_args = CompilerArgs(compiler_args_filename)
         self.tunit_cache   = tunit_cache
+        logging.info("libclang version: '{0}'".format(ClangParser.__get_clang_version()))
 
     def get_compiler_args_db(self):
         return self.compiler_args

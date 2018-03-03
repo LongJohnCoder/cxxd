@@ -31,6 +31,7 @@ class ClangTidy(cxxd.service.Service):
                     logging.error('clang-tidy requires compiler flags to be provided either inline or via JSON compilation database.')
             else:
                 logging.error('Provided compilation database, \'{0}\', does not exist. Please check if correct path is given.'.format(compilation_database))
+            logging.info('clang-tidy version: \'{0}\''.format(subprocess.check_output([self.clang_tidy_binary, '-version'])))
         else:
             logging.error('clang-tidy executable not found on your system path!')
 
