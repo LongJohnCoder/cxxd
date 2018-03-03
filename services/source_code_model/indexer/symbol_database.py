@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 
 class SymbolDatabase(object):
@@ -42,10 +43,24 @@ class SymbolDatabase(object):
         try:
             if unique_id != '':
                 self.db_connection.cursor().execute('INSERT INTO symbol VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    (filename, line, column, unique_id, context, symbol_kind, is_definition,)
+                    (
+                        filename.decode('utf8') if isinstance(filename, str) else filename,     # NOTE Decoding an already UTF-8 encoded
+                        line,                                                                   #      string (unicode) raises an exception.
+                        column,                                                                 #      Therefore 'isinstance' check.
+                        unique_id.decode('utf8') if isinstance(unique_id, str) else unique_id,
+                        context.decode('utf8') if isinstance(context, str) else context,
+                        symbol_kind,
+                        is_definition,
+                    )
                 )
+        except sqlite3.ProgrammingError as e:
+            logging.error(
+                'Failed to insert \'[{0}, {1}, {2}, {3}, {4}, {5}, {6}]\' into the database. Exception details: \'{7}\''.format(
+                    filename, line, column, unique_id, context, symbol_kind, is_definition, e
+                )
+            )
         except sqlite3.IntegrityError:
-            pass
+            pass # NOTE Very much expected to be triggered during indexer operation and not an error
 
     def insert_from(self, symbol_db_filename_list):
         for db in symbol_db_filename_list:
