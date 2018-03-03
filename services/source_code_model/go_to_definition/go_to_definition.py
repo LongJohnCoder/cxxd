@@ -26,7 +26,9 @@ class GoToDefinition():
                             cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr(),
                          ).fetchall()
             if definition:
-                def_filename, def_line, def_column = os.path.join(self.project_root_directory, definition[0][0]), definition[0][1], definition[0][2]
+                def_filename, def_line, def_column = os.path.join(
+                        self.project_root_directory, self.symbol_db.get_filename(definition[0])
+                    ), self.symbol_db.get_line(definition[0]), self.symbol_db.get_column(definition[0])
         else:
             loc = definition.location
             def_filename, def_line, def_column = loc.file.name, loc.line, loc.column

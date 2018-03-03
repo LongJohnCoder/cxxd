@@ -195,7 +195,12 @@ class ClangIndexer(object):
                 usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
                 self.symbol_db.open(self.symbol_db_path)
                 for ref in self.symbol_db.get_by_id(usr).fetchall():
-                    references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
+                    references.append([
+                        os.path.join(self.root_directory, self.symbol_db.get_filename(ref)),
+                        self.symbol_db.get_line(ref),
+                        self.symbol_db.get_column(ref),
+                        self.symbol_db.get_context(ref)
+                    ])
                 logging.info("Find-all-references operation completed for '{0}', [{1}, {2}], '{3}'".format(
                     cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling)
                 )

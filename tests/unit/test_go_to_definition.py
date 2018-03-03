@@ -99,31 +99,41 @@ class SourceCodeModelGoToDefinitionTest(unittest.TestCase):
 
     def test_if_call_returns_true_and_definition_is_found_for_non_local_symbol_not_included_via_header_but_found_in_symbol_db(self):
         cursor = mock.MagicMock(sqlite3.Cursor)
-        cursor.fetchall.return_value = [('name_of_some_other_translation_unit_extracted_from_symbol_db', 124, 5)] # some random unimportant value
+        made_up_filename, line, column = 'name_of_some_other_translation_unit_extracted_from_symbol_db', 124, 5
+        cursor.fetchall.return_value = [(made_up_filename, line, column)]
         with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=cursor) as mock_symbol_db_get_definition:
-            success, definition = self.service(
-                [self.test_file.name, self.test_file.name, 13, 12]
-            )
-        filename, line, column = definition
+            with mock.patch.object(self.service.symbol_db, 'get_filename', return_value=made_up_filename):
+                with mock.patch.object(self.service.symbol_db, 'get_line', return_value=line):
+                    with mock.patch.object(self.service.symbol_db, 'get_column', return_value=column):
+                        success, definition = self.service(
+                            [self.test_file.name, self.test_file.name, 13, 12]
+                        )
+        def_filename, def_line, def_column = definition
         self.assertEqual(success, True)
-        self.assertNotEqual(filename, self.test_file.name)
-        self.assertGreaterEqual(filename.find(self.project_root_directory), 0)
-        self.assertGreaterEqual(line, 0)
-        self.assertGreaterEqual(column, 0)
+        self.assertNotEqual(def_filename, self.test_file.name)
+        self.assertGreaterEqual(def_filename.find(self.project_root_directory), 0)
+        self.assertGreaterEqual(def_filename.find(made_up_filename), 0)
+        self.assertEqual(def_line, line)
+        self.assertEqual(def_column, column)
 
     def test_if_call_returns_true_and_definition_is_found_for_non_local_symbol_not_included_via_header_but_found_in_symbol_db_with_current_tunit_being_modified(self):
         cursor = mock.MagicMock(sqlite3.Cursor)
-        cursor.fetchall.return_value = [('name_of_some_other_translation_unit_extracted_from_symbol_db', 124, 5)] # some random unimportant value
+        made_up_filename, line, column = 'name_of_some_other_translation_unit_extracted_from_symbol_db', 124, 5
+        cursor.fetchall.return_value = [(made_up_filename, line, column)]
         with mock.patch.object(self.service.symbol_db, 'get_definition', return_value=cursor) as mock_symbol_db_get_definition:
-            success, definition = self.service(
-                [self.test_file.name, self.test_file_edited.name, 15, 12]
-            )
-        filename, line, column = definition
+            with mock.patch.object(self.service.symbol_db, 'get_filename', return_value=made_up_filename):
+                with mock.patch.object(self.service.symbol_db, 'get_line', return_value=line):
+                    with mock.patch.object(self.service.symbol_db, 'get_column', return_value=column):
+                        success, definition = self.service(
+                            [self.test_file.name, self.test_file_edited.name, 15, 12]
+                        )
+        def_filename, def_line, def_column = definition
         self.assertEqual(success, True)
-        self.assertNotEqual(filename, self.test_file.name)
-        self.assertGreaterEqual(filename.find(self.project_root_directory), 0)
-        self.assertGreaterEqual(line, 0)
-        self.assertGreaterEqual(column, 0)
+        self.assertNotEqual(def_filename, self.test_file.name)
+        self.assertGreaterEqual(def_filename.find(self.project_root_directory), 0)
+        self.assertGreaterEqual(def_filename.find(made_up_filename), 0)
+        self.assertEqual(def_line, line)
+        self.assertEqual(def_column, column)
 
     # TODO test for non-parseable translation units (compile errors?)
 

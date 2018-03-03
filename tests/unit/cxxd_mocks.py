@@ -2,6 +2,15 @@ class SymbolDatabaseMock():
     def get_definition(self, id):
         pass
 
+    def get_filename(self, row):
+        pass
+
+    def get_line(self, row):
+        pass
+
+    def get_column(self, row):
+        pass
+
 class ServiceMock():
     def send_startup_request(self, payload):
         pass
