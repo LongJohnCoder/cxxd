@@ -54,11 +54,11 @@ class SymbolDatabase(object):
         # TODO Use generators
         return self.db_connection.cursor().execute('SELECT * FROM symbol')
 
-    def get_by_id(self, id):
-        return self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=?', (id,))
+    def get_by_usr(self, usr):
+        return self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=?', (usr,))
 
-    def get_definition(self, id):
-        return self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=? AND is_definition=1', (id,))
+    def get_definition(self, usr):
+        return self.db_connection.cursor().execute('SELECT * FROM symbol WHERE usr=? AND is_definition=1', (usr,))
 
     def insert_single(self, filename, line, column, unique_id, context, symbol_kind, is_definition):
         try:

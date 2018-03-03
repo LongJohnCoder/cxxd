@@ -194,7 +194,7 @@ class ClangIndexer(object):
                 #      contrast contains an original filename).
                 usr = cursor.referenced.get_usr() if cursor.referenced else cursor.get_usr()
                 self.symbol_db.open(self.symbol_db_path)
-                for ref in self.symbol_db.get_by_id(usr).fetchall():
+                for ref in self.symbol_db.get_by_usr(usr).fetchall():
                     references.append([
                         os.path.join(self.root_directory, self.symbol_db.get_filename(ref)),
                         self.symbol_db.get_line(ref),

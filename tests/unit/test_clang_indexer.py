@@ -284,12 +284,12 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=cursor) as mock_symbol_db_get_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_get_by_id.assert_called_once()
+        mock_symbol_db_get_by_usr.assert_called_once()
         self.assertEqual(success, True)
         self.assertEqual(len(references), 0)
 
@@ -301,12 +301,12 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=cursor) as mock_symbol_db_get_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_get_by_id.assert_called_once()
+        mock_symbol_db_get_by_usr.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
 
@@ -318,12 +318,12 @@ class ClangIndexerTest(unittest.TestCase):
             with mock.patch.object(self.service.parser, 'parse') as mock_parser_parse:
                 with mock.patch.object(self.service.parser, 'get_cursor') as mock_parser_get_cursor:
                     with mock.patch.object(self.service.symbol_db, 'open') as mock_symbol_db_open:
-                        with mock.patch.object(self.service.symbol_db, 'get_by_id', return_value=cursor) as mock_symbol_db_get_by_id:
+                        with mock.patch.object(self.service.symbol_db, 'get_by_usr', return_value=cursor) as mock_symbol_db_get_by_usr:
                             success, references = self.service([SourceCodeModelIndexerRequestId.FIND_ALL_REFERENCES, self.test_file.name, line, column])
         mock_parser_parse.assert_called_once_with(self.test_file.name, self.test_file.name)
         mock_parser_get_cursor.assert_called_once_with(mock_parser_parse.return_value, line, column)
         mock_symbol_db_open.assert_called_with(self.service.symbol_db_path)
-        mock_symbol_db_get_by_id.assert_called_once()
+        mock_symbol_db_get_by_usr.assert_called_once()
         self.assertEqual(success, True)
         self.assertNotEqual(len(references), 0)
         filename = references[0][0]
