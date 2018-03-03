@@ -184,7 +184,6 @@ class ClangIndexer(object):
     def __find_all_references(self, id, args):
         tunit, cursor, references = None, None, []
         if self.symbol_db_exists():
-            start = time.clock()
             tunit = self.parser.parse(str(args[0]), str(args[0]))
             cursor = self.parser.get_cursor(tunit, int(args[1]), int(args[2]))
             if cursor:
@@ -197,8 +196,8 @@ class ClangIndexer(object):
                 self.symbol_db.open(self.symbol_db_path)
                 for ref in self.symbol_db.get_by_id(usr).fetchall():
                     references.append([os.path.join(self.root_directory, ref[0]), ref[1], ref[2], ref[3], ref[4]])
-                logging.info("Find-all-references operation of '{0}', [{1}, {2}], '{3}' took {4}".format(
-                    cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling, time.clock() - start)
+                logging.info("Find-all-references operation completed for '{0}', [{1}, {2}], '{3}'".format(
+                    cursor.displayname, cursor.location.line, cursor.location.column, tunit.spelling)
                 )
             logging.info("\n{0}".format('\n'.join(str(ref) for ref in references)))
         else:
@@ -241,13 +240,11 @@ def indexer_visitor(ast_node, ast_parent_node, args):
 
 def index_single_file(parser, root_directory, contents_filename, original_filename, symbol_db):
     logging.info("Indexing a file '{0}' ... ".format(original_filename))
-    start = time.clock()
     tunit = parser.parse(contents_filename, original_filename)
     if tunit:
         parser.traverse(tunit.cursor, [parser, symbol_db, root_directory], indexer_visitor)
         symbol_db.flush()
-    time_elapsed = time.clock() - start
-    logging.info("Indexing {0} took {1}.".format(original_filename, time_elapsed))
+    logging.info("Indexing of {0} completed.".format(original_filename))
     return tunit is not None
 
 def remove_root_dir_from_filename(root_dir, full_path):
