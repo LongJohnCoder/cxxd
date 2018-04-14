@@ -45,22 +45,22 @@ API tries to stay fairly trivial and straightforward without putting too much bu
 
 ## Design
 ### Services
-Aforementioned features are organized into [services](https://github.com/JBakamovic/cxxd/tree/remove_frontend_code/services).
-Each [service](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/service.py):
+Aforementioned features are organized into [services](services).
+Each [service](service.py):
 * Is assigned its own unique ID
 * Runs in its own context (process)
 * Supports a set of common operations: `startup`, `shutdown`, `request`
-* Provides a user-defined hook, so called [`plugin`](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/service_plugin.py), to be invoked on completion of any of the supported operations
+* Provides a user-defined hook, so called [`plugin`](service_plugin.py), to be invoked on completion of any of the supported operations
 
 ### Server
-Communication with any of the `service` is established/routed via proxy [`server`](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/server.py) which sits in between the client (frontend) and corresponding `service`. Server implements a very simple API:
+Communication with any of the `service` is established/routed via proxy [`server`](server.py) which sits in between the client (frontend) and corresponding `service`. Server implements a very simple API:
 * `start-all-services`
 * `start-service`
 * `shutdown-all-services`
 * `shutdown-service`
 * `send-service-request`
 
-[Public API](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/api.py), which is exposed to clients, is implemented on top of `server` API.
+[Public API](api.py), which is exposed to clients, is implemented on top of `server` API.
 
 ### Async
 API, due to the nature of features being implemented, is designed to work in an **asynchronous** fashion. That means that retrieving the result from corresponding operation cannot be done via regular (synchronous) return-value mechanism but instead one must register a hook (callback) object which will then be invoked once the result is ready (after operation has completed). These callbacks we call `plugin`s.
@@ -76,19 +76,19 @@ Plugin is a mechanism to subscribe for a result of an asynchronous operation. Th
 
 #### `cxxd` integration tests
 
-[Integration test suite](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/test_all.py) is actually a representative example of a frontend which has a main purpose in validating the data computed by the services (e.g. if `go-to-definition` returns a valid/expected source code location). Some other frontends will rather like to do something more with the data, e.g. visualize it or populate the UI elements with it.
+[Integration test suite](tests/integration/test_all.py) is actually a representative example of a frontend which has a main purpose in validating the data computed by the services (e.g. if `go-to-definition` returns a valid/expected source code location). Some other frontends will rather like to do something more with the data, e.g. visualize it or populate the UI elements with it.
 
 So, integration tests have all of the important bits which depict the usage of an API:
 
-* We have to [start the server](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/test_all.py#L70-L80) before anything else.
+* We have to [start the server](tests/integration/test_all.py#L70-L80) before anything else.
 
-* A mechanism which provides customization point for application-specific purposes is [factory function](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/test_all.py#L17-L26). Factory function will be invoked during the server startup phase. Its purpose is to provide a means to instantiate an application-specific server with main (customization) part being the [registration of application-specific plugins](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/test_all.py#L22-L25).
+* A mechanism which provides customization point for application-specific purposes is [factory function](tests/integration/test_all.py#L17-L26). Factory function will be invoked during the server startup phase. Its purpose is to provide a means to instantiate an application-specific server with main (customization) part being the [registration of application-specific plugins](tests/integration/test_all.py#L22-L25).
 
-* Application-specific plugins in integration tests will only [make a copy](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/cxxd_plugins.py#L12) of received data to be able to [validate its contents](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/test_all.py#L114) from the test execution context.
+* Application-specific plugins in integration tests will only [make a copy](tests/integration/cxxd_plugins.py#L12) of received data to be able to [validate its contents](tests/integration/test_all.py#L114) from the test execution context.
 
-* To communicate the received data to different execution contexts (processes), one shall use some form of inter-process communication mechanisms. This integration test suite implements the inter-process communication by utilizing the [shared-memory](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/cxxd_callbacks.py#L10) to store the data and [named-semaphores](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/cxxd_callbacks.py#L179) to synchronize between R/W accesses. Some other application will use other means to achieve the same (i.e. to communicate the data back to `vim` instance one could make use one of the [RPC mechanisms](http://vimdoc.sourceforge.net/htmldoc/remote.html) that `vim` provides).
+* To communicate the received data to different execution contexts (processes), one shall use some form of inter-process communication mechanisms. This integration test suite implements the inter-process communication by utilizing the [shared-memory](tests/integration/cxxd_callbacks.py#L10) to store the data and [named-semaphores](tests/integration/cxxd_callbacks.py#L179) to synchronize between R/W accesses. Some other application will use other means to achieve the same (i.e. to communicate the data back to `vim` instance one could make use one of the [RPC mechanisms](http://vimdoc.sourceforge.net/htmldoc/remote.html) that `vim` provides).
 
-* [Example](https://github.com/JBakamovic/cxxd/blob/remove_frontend_code/tests/integration/test_all.py#L112-114) of triggering the service is running the source code indexer on the given directory, waiting until it is completed and querying if it has run successfuly.
+* [Example](tests/integration/test_all.py#L112-114) of triggering the service is running the source code indexer on the given directory, waiting until it is completed and querying if it has run successfuly.
 
 * Many other examples depicting the usage of an API
 
