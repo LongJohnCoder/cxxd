@@ -70,7 +70,7 @@ Plugin is a mechanism to subscribe for a result of an asynchronous operation. Th
 
 ### Diagram
 
-TODO create an UML diagram for better overall picture
+![Diagram](docs/client-server-architecture.png)
 
 ### Example usage
 
